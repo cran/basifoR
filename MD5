@@ -1,0 +1,17 @@
+c71ae13522ebf57dee748624afd7c3c5 *DESCRIPTION
+ce9a82e2019f443ba2a893cd5a4c352e *NAMESPACE
+38372a5b2200041d8427efd6ba84f111 *R/dbhMetric.R
+61d6c041484a8fe8f820407bb75ad63b *R/dendroMetrics.R
+6a0658c57aa5f8cfc814844101e39f0a *R/internal.R
+6b052b53616ec5b518b44edcfe09e12e *R/metrics2Vol.R
+fcf60c9d6e679ddcfede920cd680567b *R/nfiMetrics.R
+0cd7af31ab3aa0c2f93823d3a6117db2 *R/readNFI.R
+2770c958656edabf1c71310b9042fc3f *R/sysdata.rda
+fb138e8c20037a715528393335deb1cb *R/urlToTemp.R
+dfc8bc2859addfa9a7b3852ab45fa393 *inst/ifn3p28_tcm30-293962.zip
+27ac5049b79b8d7cdd6a435dd49b09b0 *man/dbhMetric.Rd
+f9f856495d67089dec5207bca7f79b3b *man/dendroMetrics.Rd
+86d3a83bf24048b483f5acc88b394d03 *man/metrics2Vol.Rd
+6e0caae781610d933724e0357b812326 *man/nfiMetrics.Rd
+4180f1d2bcad257551e899186afa4d54 *man/readNFI.Rd
+47b318178172a5042fa265069997c02f *man/urlToTemp.Rd
