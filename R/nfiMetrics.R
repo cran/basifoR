@@ -24,17 +24,19 @@ nfiMetrics <- structure(function#Tree metrics from NFI data
                                          ##better understanding of the
                                          ##metrics units. Default
                                          ##\code{c('pr','d','h','ba','n','Hd')}.
-    levels = c('esta','espe') ##<<\code{character}. levels at which
+    levels = c('esta','espe'), ##<<\code{character}. levels at which
                               ##the metrics are computed. Pattern
                               ##matching is supported. Cases are
                               ##ignored. Default
                               ##\code{c('esta','espe')} matches both
                               ##the sample plot \code{'Estadillos'}
-                              ##and tree species \code{'Especie'}.
+                              ##and tree species \code{'Especie'}.,
+        ... ##<< Additional arguments in \code{\link{readNFI}}.
+
 ) {
         if(is.null(nfi)|is.character(nfi)){
             nfi. <- nfi
-        nfi <- readNFI(nfi)
+        nfi <- readNFI(nfi, ...)
         if(is.null(nfi.))
             return(nfi)}
     fc <- function(dt, cl.){

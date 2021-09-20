@@ -1,6 +1,7 @@
+importFrom("curl","has_internet")
 importFrom("foreign","read.dbf")
 importFrom("Hmisc", "mdb.get")
-importFrom("httr", "modify_url")
+importFrom("httr", "GET","http_error","message_for_status","modify_url","timeout")
 importFrom("measurements", "conv_unit")
 importFrom("RODBC", "odbcConnect", "odbcClose", "sqlFetch")
 importFrom("stats", "formula","na.omit","update")

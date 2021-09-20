@@ -8,7 +8,7 @@ recursively derive the metrics plus over bark volumes.}
 \usage{nfiMetrics(nfi, var = c("d", 
     "h", "ba", "n", "Hd"), 
     levels = c("esta", 
-        "espe"))}
+        "espe"), ...)}
 \arguments{
   \item{nfi}{\code{character} or \code{data.frame}.  URL/path to a
 compressed file of the NFI (.zip) having data of either
@@ -36,7 +36,8 @@ matching is supported. Cases are
 ignored. Default
 \code{c('esta','espe')} matches both
 the sample plot \code{'Estadillos'}
-and tree species \code{'Especie'}.}
+and tree species \code{'Especie'}.,}
+  \item{\dots}{Additional arguments in \code{\link{readNFI}}.}
 }
 
 \value{\code{data.frame} containing columns which match the strings in

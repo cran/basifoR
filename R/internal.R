@@ -32,6 +32,40 @@ gap <- grepl(app,nma, ignore.case = TRUE)
 nms <- nma[gap]
 return(nms)}
 
+## source: https://community.rstudio.com/t/internet-resources-should-fail-gracefully/49199/11
+
+gracefully_fail <- function(remote_file, timeOut = timeout(50)) {
+  try_GET <- function(x, ...) {
+    tryCatch(
+      GET(url = x, timeOut, ...),
+      ## GET(url = x, timeout(50), ...),
+      error = function(e) conditionMessage(e),
+      warning = function(w) conditionMessage(w)
+    )
+  }
+  is_response <- function(x) {
+    class(x) == "response"
+  }
+  
+  # First check internet connection
+  if (!curl::has_internet()) {
+    message("No internet connection.")
+    return(invisible(NULL))
+  }
+  # Then try for timeout problems
+  resp <- try_GET(remote_file)
+  if (!is_response(resp)) {
+    message(resp)
+    return(invisible(NULL))
+  }
+  # Then stop if status > 400
+  if (httr::http_error(resp)) { 
+    message_for_status(resp)
+    return(invisible(NULL))
+  }
+  
+return(TRUE)
+}
 
 
 units. <- c('d','h','ba','n','Hd','v')
@@ -80,8 +114,9 @@ else
 
 .onLoad <- function(libname, pkgname){
     op <- options()
-    op.FC <- list(url2 = "http://www.mapama.gob.es/es/biodiversidad/servicios/banco-datos-naturaleza/090471228013cbbd_tcm30-278511.zip",
-                  url3 = "http://www.mapama.gob.es/es/biodiversidad/servicios/banco-datos-naturaleza/ifn3p01_tcm30-293907.zip",
+    op.FC <- list(api = 'www.miteco.gov.es',
+                  url2 = "http://www.miteco.gob.es/es/biodiversidad/servicios/banco-datos-naturaleza/090471228013cbbd_tcm30-278511.zip",
+                  url3 = "http://www.miteco.gob.es/es/biodiversidad/servicios/banco-datos-naturaleza/ifn3p01_tcm30-293907.zip",
                   utm = "+proj=utm +zone=utm.z +ellps=GRS80 +datum=NAD83 +units=m +no_defs",
                   utm1 = "+proj=utm +zone=utm.z +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0",
                   longlat = '+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs',
