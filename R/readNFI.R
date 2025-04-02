@@ -11,10 +11,10 @@ readNFI <- structure(function#Read NFI data
                       ##\code{http://www.miteco.gob.es} using
                       ##appropriate \code{URLs}. Data sets from 2nd
                       ##SNFI are imported using
-                      ##\code{\link{read.dbf}}. Data from latter
+                      ##\code{\link[foreign]{read.dbf}}. Data from latter
                       ##stages are imported using either
-                      ##\code{\link{RODBC}} (Windows) or
-                      ##\code{\link{mdb.get}} (unix-alike
+                      ##\code{\link[RODBC]{odbcConnect}} (Windows) or
+                      ##\code{\link[Hmisc]{mdb.get}} (unix-alike
                       ##systems). Data from 4th SNFI must be read from
                       ##local paths.  On Windows, a driver for Office
                       ##2010 can be installed via the installer

@@ -9,7 +9,7 @@ decompress \code{.zip} files with data sets of the SNFI. }
 SNFI (.zip) having data of either .dbf or .mdb file
 extensions..}
   \item{timeOut}{\code{request}. Maximum request time,
-see \code{\link{timeout}}. Default
+see \code{\link[httr]{timeout}}. Default
 \code{timeout(60)}}
 }
 \details{The data sets are decompressed in a
@@ -20,7 +20,7 @@ extensions other than \code{.mdb} or
 \value{\code{character}. Path to the NFI data (.mdb or .dbf) stored in a
 temporary file}
 
-\author{Wilson Lara <wilarhen@gmail.com>, Cristobal Ordonez <a_cristo@pvs.uva.es>, Felipe Bravo <fbravo@pvs.uva.es>}
+\author{Wilson Lara <wilarhen@gmail.com> [aut, cre] (<https://orcid.org/0000-0003-3527-1380>), Cristobal Ordonez <a_cristo@pvs.uva.es> [aut] (<https://orcid.org/0000-0001-5354-3760>), Felipe Bravo <fbravo@pvs.uva.es> [aut] (<https://orcid.org/0000-0001-7348-6695>)}
 
 
 

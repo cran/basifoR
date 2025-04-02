@@ -2,15 +2,33 @@ Package: basifoR
 Type: Package
 Title: Retrieval and Processing of the Spanish National Forest
         Inventory
-Version: 0.4
-Date: 2021-09-15
-Author: Wilson Lara <wilarhen@gmail.com>, Cristobal Ordonez <a_cristo@pvs.uva.es>, Felipe Bravo <fbravo@pvs.uva.es>
+Version: 0.4.1
+Date: 2025-04-02
+Authors@R: 
+    c(person(given = "Wilson",
+             family = "Lara",
+             role = c("aut", "cre"),
+             email = "wilarhen@gmail.com",
+	     comment = c(ORCID = "0000-0003-3527-1380")),
+      person(given = "Cristobal",
+             family = "Ordonez",
+             role = "aut",
+	     email = "a_cristo@pvs.uva.es",
+	     comment = c(ORCID = "0000-0001-5354-3760")),
+      person(given = "Felipe",
+             family = "Bravo",
+             role = "aut",
+	     email = "fbravo@pvs.uva.es",
+	     comment = c(ORCID = "0000-0001-7348-6695")))
 Maintainer: Wilson Lara <wilarhen@gmail.com>
-Description: Data sets of the Spanish National Forest Inventory <https://www.miteco.gob.es/es/biodiversidad/servicios/banco-datos-naturaleza/informacion-disponible/> are processed to compute tree metrics and statistics. Function metrics2Vol() controls most of the routines.
+Description: Data sets of the Spanish National Forest Inventory <https://www.miteco.gob.es/es/biodiversidad/servicios/banco-datos-naturaleza/informacion-disponible.html> are processed to compute tree metrics and statistics. Function metrics2Vol() controls most of the routines.
 License: GPL-3
 Depends: R (>= 2.10),RODBC
 Imports: curl,foreign,Hmisc,httr,measurements,stats,utils
 NeedsCompilation: no
-Packaged: 2021-09-17 11:02:35 UTC; wilar
+Packaged: 2025-04-02 18:42:36 UTC; wihe
 Repository: CRAN
-Date/Publication: 2021-09-20 08:20:05 UTC
+Date/Publication: 2025-04-02 19:00:02 UTC
+Author: Wilson Lara [aut, cre] (<https://orcid.org/0000-0003-3527-1380>),
+  Cristobal Ordonez [aut] (<https://orcid.org/0000-0001-5354-3760>),
+  Felipe Bravo [aut] (<https://orcid.org/0000-0001-7348-6695>)

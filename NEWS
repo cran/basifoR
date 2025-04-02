@@ -1,3 +1,15 @@
+Changes in basifoR 0.4.1
+
+- Fixed missing Rd \link{} targets by providing package anchors for:  
+  - `readNFI.Rd`: added links for `read.dbf`, `RODBC`, and `mdb.get`.  
+  - `urlToTemp.Rd`: ensured proper linking for `timeout`.  
+
+
+
 Changes in basifoR 0.4
 
-urlToTemp: API for the SNFI has changed: 'www.mapama.gob.es' has been replaced by 'www.miteco.gob.es'. Besides, Internet resources fail gracefully with an informative message if the resource is not available or has changed (and not give a check warning nor error) 
+- `urlToTemp`: The API for the SNFI has changed.  
+  The old domain `'www.mapama.gob.es'` has been replaced with `'www.miteco.gob.es'`.  
+- Internet resources now fail gracefully, providing an informative message  
+  if a resource is unavailable or has changed. This prevents check warnings  
+  or errors.

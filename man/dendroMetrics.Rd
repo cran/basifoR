@@ -54,7 +54,7 @@ in \code{\link{Logic}}.}
 \code{\link{metrics2Vol}}, or a summary of the variables, see
 Details section.}
 
-\author{Wilson Lara <wilarhen@gmail.com>, Cristobal Ordonez <a_cristo@pvs.uva.es>, Felipe Bravo <fbravo@pvs.uva.es>}
+\author{Wilson Lara <wilarhen@gmail.com> [aut, cre] (<https://orcid.org/0000-0003-3527-1380>), Cristobal Ordonez <a_cristo@pvs.uva.es> [aut] (<https://orcid.org/0000-0001-5354-3760>), Felipe Bravo <fbravo@pvs.uva.es> [aut] (<https://orcid.org/0000-0001-7348-6695>)}
 
 
 
@@ -73,12 +73,12 @@ attr(dmad,'units')
 ## Retrieval of SNFI data in 'www.miteco.gob.es' and computation
 ## of the corresponding dendrometric summary:
 
-\donttest{
-path <- '/es/biodiversidad/servicios/banco-datos-naturaleza/090471228013cbbd_tcm30-278511.zip'
-url2 <- httr::modify_url("https://www.miteco.gob.es", path = path)
-dmad <- dendroMetrics(url2, cut.dt = 'h >= 11')
-head(dmad)
-attr(dmad, 'units')
-}
+## donttest{
+## path <- '/es/biodiversidad/servicios/banco-datos-naturaleza/090471228013cbbd_tcm30-278511.zip'
+## url2 <- httr::modify_url("https://www.miteco.gob.es", path = path)
+## dmad <- dendroMetrics(url2, cut.dt = 'h >= 11')
+## head(dmad)
+## attr(dmad, 'units')
+## }
 
 }

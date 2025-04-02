@@ -11,7 +11,7 @@ urlToTemp <- structure(function#Temporary NFI data
            ##SNFI (.zip) having data of either .dbf or .mdb file
            ##extensions..
     timeOut = timeout(60) ##<<\code{request}. Maximum request time,
-                          ##see \code{\link{timeout}}. Default
+                          ##see \code{\link[httr]{timeout}}. Default
                           ##\code{timeout(60)}
 ) {
     if(is.null(url.))
