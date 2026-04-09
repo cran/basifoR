@@ -1,51 +1,32 @@
 \name{dbhMetric}
 \alias{dbhMetric}
-\title{DBH metrics}
-\description{This function can format tree diameters at breast height and tree
-heights according to the sampling design of the Spanish National
-Forest Inventory (SNFI). The function is used by other routines of
-\code{basifoR} to derive tree metrics, see Details
-section. Implementation of this function using data sets of the
-SNFI can be burdensome. Use \code{\link{dendroMetrics}} instead to
-recursively derive tree metrics.}
-\usage{dbhMetric(dbh, met = "d")}
+\title{Compute diameter, basal area, tree density, or height from tree measurements}
+\description{Convert raw tree diameter or height inputs into the compact metric formats used across basifoR workflows.}
+\usage{dbhMetric(dbh, met = "d", 
+    design = snfi_design())}
 \arguments{
-  \item{dbh}{\code{numeric}. Either diameters at breast height
-(\code{mm}) or tree heights (\code{m}). Vectors are
-averaged. Zero values are formatted to \code{NA}.}
-  \item{met}{\code{character}. Any of five metrics: mean diameter
-at breast height (\code{'d'}), basal area
-(\code{'ba'}), number of trees (\code{'n'}), or tree
-height (\code{'h'}). Default \code{'d'}.}
+  \item{dbh}{\code{numeric}. Diameter at breast height in \code{mm}, or tree height in \code{m} when \code{met = "h"}. Non-numeric inputs are coerced, zeros are treated as missing, and vectors are averaged after that replacement.}
+  \item{met}{\code{character(1)}. Metric to compute: mean diameter at breast height (\code{"d"}), basal area (\code{"ba"}), trees per hectare (\code{"n"}), or height (\code{"h"}).}
+  \item{design}{Object inheriting from \code{"inventory_design"}, used only when \code{met = "n"} to derive the trees-per-hectare expansion factor. The default is the Spanish National Forest Inventory concentric subplot \code{design}.}
 }
-\details{Replicates of tree diameter
-\code{'d'} are averaged. The tree heights
-\code{'h'} are formatted from \code{mm} to
-\code{dm} for further evaluation of volume
-equations. The basal areas are computed
-transforming the diameters from \code{mm} to
-\code{cm} and using the formula: \code{ba (m2
-tree-1 ha-1) = pi * d(cm)^2 * (4 *
-1E4)^-1}. The number of trees per hectare
-\code{'n'} are calculated considering the
-sample design of the NFI: each plot consists
-of four concentric subplots with radii
-\code{5, 10, 15,} and \code{25 m}. The
-minimum diameters recorded in the subplots
-are \code{7.5, 12.5, 22.5,} and \code{42.5
-cm} respectively. Considering these, any of
-four estimates is printed: \code{127.32,
-31.83, 14.15}, or \code{5.09}.}
-\value{\code{numeric}. A tree metric: mean diameter (\code{mm}), tree basal area
-(\code{m2 tree-1}), number of trees (dimensionless), or
-tree height (\code{dm}).}
+\details{The sampling \code{design} affects only \code{met = "n"}. For \code{"d"}, \code{"ba"}, and \code{"h"}, the returned value does not depend on \code{design}.}
+\value{A single \code{numeric} value. Returns mean diameter in \code{mm} for \code{met = "d"}, basal area in \code{m^2} per tree for \code{met = "ba"}, trees per hectare for \code{met = "n"}, and height in \code{dm} for \code{met = "h"}. Returns \code{NA_real_} when all supplied values are missing or become missing after zero replacement.}
 
-\author{Wilson Lara <wilarhen@gmail.com> [aut, cre] (<https://orcid.org/0000-0003-3527-1380>), Cristobal Ordonez <a_cristo@pvs.uva.es> [aut] (<https://orcid.org/0000-0001-5354-3760>), Felipe Bravo <fbravo@pvs.uva.es> [aut] (<https://orcid.org/0000-0001-7348-6695>)}
+\author{Wilson Lara <wilarhen@gmail.com> [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>), Cristobal Ordonez <angelcristobal.ordonez@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-5354-3760>), Aitor Vázquez-Veloso <aitor.vazquez.veloso@uva.es> [aut] (ORCID: <https://orcid.org/0000-0003-0227-506X>), Felipe Bravo <felipe.bravo@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
 
 
 
 
 \examples{
-dbh <- dbhMetric(c(10.7, 11.5), 'h')# average tree height (dm) 
+dbhMetric(300, "d")
+dbhMetric(300, "ba")
+dbhMetric(18, "h")
 
+dsg <- new_concentric_design(
+    radii_m = c(4, 8, 12),
+    min_dbh_cm = c(5, 15, 30),
+    name = "3-subplot design"
+)
+
+dbhMetric(130, "n", design = dsg)
 }

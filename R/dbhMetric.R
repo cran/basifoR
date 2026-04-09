@@ -1,78 +1,60 @@
-dbhMetric <- structure(function#DBH metrics
-###This function can format tree diameters at breast height and tree
-###heights according to the sampling design of the Spanish National
-###Forest Inventory (SNFI). The function is used by other routines of
-###\code{basifoR} to derive tree metrics, see Details
-###section. Implementation of this function using data sets of the
-###SNFI can be burdensome. Use \code{\link{dendroMetrics}} instead to
-###recursively derive tree metrics.
-                       ##details<< Replicates of tree diameter
-                       ##\code{'d'} are averaged. The tree heights
-                       ##\code{'h'} are formatted from \code{mm} to
-                       ##\code{dm} for further evaluation of volume
-                       ##equations. The basal areas are computed
-                       ##transforming the diameters from \code{mm} to
-                       ##\code{cm} and using the formula: \code{ba (m2
-                       ##tree-1 ha-1) = pi * d(cm)^2 * (4 *
-                       ##1E4)^-1}. The number of trees per hectare
-                       ##\code{'n'} are calculated considering the
-                       ##sample design of the NFI: each plot consists
-                       ##of four concentric subplots with radii
-                       ##\code{5, 10, 15,} and \code{25 m}. The
-                       ##minimum diameters recorded in the subplots
-                       ##are \code{7.5, 12.5, 22.5,} and \code{42.5
-                       ##cm} respectively. Considering these, any of
-                       ##four estimates is printed: \code{127.32,
-                       ##31.83, 14.15}, or \code{5.09}.
-(
-    dbh,  ##<<\code{numeric}. Either diameters at breast height
-          ##(\code{mm}) or tree heights (\code{m}). Vectors are
-          ##averaged. Zero values are formatted to \code{NA}.
-    met = 'd' ##<<\code{character}. Any of five metrics: mean diameter
-              ##at breast height (\code{'d'}), basal area
-              ##(\code{'ba'}), number of trees (\code{'n'}), or tree
-              ##height (\code{'h'}). Default \code{'d'}.
-    
+dbhMetric <- structure(function
+##title<< Compute diameter, basal area, tree density, or height from tree measurements
+##description<< Convert raw tree diameter or height inputs into the compact metric formats used across basifoR workflows.
+##details<<
+##details<< \code{dbhMetric} is a lightweight formatter used by the package to derive a single tree-level metric from diameter-at-breast-height or height inputs.
+##details<<
+##details<< The function first coerces non-numeric inputs with \code{as.numeric(as.character())}, replaces zeros with \code{NA}, and, when several values are supplied, reduces them to their mean after removing missing values. If every supplied value is missing, the function returns \code{NA_real_}.
+##details<<
+##details<< Unit handling depends on \code{met}. For \code{"d"}, the function returns the mean diameter in \code{mm}. For \code{"ba"}, it converts diameter from \code{mm} to \code{cm} and returns basal area in \code{m^2} per tree. For \code{"n"}, it also converts diameter to \code{cm} and then uses \code{design} through \code{\link{trees_per_ha}} to obtain the trees-per-hectare expansion factor. For \code{"h"}, it treats the input as height in \code{m} and returns height in \code{dm}.
+##details<<
+##details<< The sampling design affects only \code{met = "n"}. For \code{"d"}, \code{"ba"}, and \code{"h"}, the returned value does not depend on \code{design}.
+(dbh, ##<< \code{numeric}. Diameter at breast height in \code{mm}, or tree height in \code{m} when \code{met = "h"}. Non-numeric inputs are coerced, zeros are treated as missing, and vectors are averaged after that replacement.
+ met = "d", ##<< \code{character(1)}. Metric to compute: mean diameter at breast height (\code{"d"}), basal area (\code{"ba"}), trees per hectare (\code{"n"}), or height (\code{"h"}).
+ design = snfi_design() ##<< Object inheriting from \code{"inventory_design"}, used only when \code{met = "n"} to derive the trees-per-hectare expansion factor. The default is the Spanish National Forest Inventory concentric subplot design.
 ) {
-    
-    fn <- function(x){
-        br <- c(7.5, 12.5, 22.5, 42.5)#cm
-        cp <- c(5, 10, 15, 25)
-        sf <- (10^4)/(pi * cp^2)
-        if (x <  br[1])             y <- NA
-        if (x >= br[1] & x < br[2]) y <- sf[1]
-        if (x >= br[2] & x < br[3]) y <- sf[2]
-        if (x >= br[3] & x < br[4]) y <- sf[3]
-        if (x >= br[4])             y <- sf[4]
-        return(y)}
-    
-    if(!is.numeric(dbh))
+
+    if (!is.numeric(dbh))
         dbh <- as.numeric(as.character(dbh))
-            dbh[dbh == 0] <- NA
-        if (length(dbh) > 1)
-            dbh <- mean(dbh, na.rm = TRUE)
-            if(all(is.na(dbh))) y = NA
-            if(!is.na(dbh)){
-                if(met%in%'d')
-                    y <- dbh
-                if(met%in%c('ba','n')){
-                    dbh <- conv_unit(
-                        dbh, from = 'mm', to = 'cm')
-                    y <- dbh^2}
-                if(met%in%'ba')
-                    y <- pi * y * (4 * 1E4)^-1
-                if(met%in%'n')
-                    y <- fn(x = dbh)
-                if(met%in%'h')
-                    y <- conv_unit(
-                        dbh, from = 'm', to = 'dm')
-            }
-            
-            return(y)
-### \code{numeric}. A tree metric: mean diameter (\code{mm}), tree basal area
-### (\code{m2 tree-1}), number of trees (dimensionless), or
-### tree height (\code{dm}).
-}, ex = function(){
-    dbh <- dbhMetric(c(10.7, 11.5), 'h')# average tree height (dm) 
-    
+
+    dbh[dbh == 0] <- NA_real_
+
+    if (length(dbh) > 1)
+        dbh <- mean(dbh, na.rm = TRUE)
+
+    if (all(is.na(dbh)))
+        return(NA_real_)
+
+    if (!met %in% c("d", "ba", "n", "h"))
+        stop("'met' must be one of 'd', 'ba', 'n', or 'h'.")
+
+    if (met %in% "d")
+        return(dbh)
+
+    if (met %in% c("ba", "n"))
+        dbh <- conv_unit(dbh, from = "mm", to = "cm")
+
+    if (met %in% "ba")
+        return(pi * dbh^2 * (4 * 1E4)^-1)
+
+    if (met %in% "n")
+        return(trees_per_ha(design = design, dbh_cm = dbh))
+
+    if (met %in% "h")
+        return(conv_unit(dbh, from = "m", to = "dm"))
+
+    ##value<< A single \code{numeric} value. Returns mean diameter in \code{mm} for \code{met = "d"}, basal area in \code{m^2} per tree for \code{met = "ba"}, trees per hectare for \code{met = "n"}, and height in \code{dm} for \code{met = "h"}. Returns \code{NA_real_} when all supplied values are missing or become missing after zero replacement.
+
+}, ex = function() {
+    dbhMetric(300, "d")
+    dbhMetric(300, "ba")
+    dbhMetric(18, "h")
+
+    dsg <- new_concentric_design(
+        radii_m = c(4, 8, 12),
+        min_dbh_cm = c(5, 15, 30),
+        name = "3-subplot design"
+    )
+
+    dbhMetric(130, "n", design = dsg)
 })

@@ -1,10 +1,48 @@
 importFrom("curl","has_internet")
 importFrom("foreign","read.dbf")
 importFrom("Hmisc", "mdb.get")
-importFrom("httr", "GET","http_error","message_for_status","modify_url","timeout")
+importFrom("httr", "GET","http_error","message_for_status","modify_url","status_code","timeout")
 importFrom("measurements", "conv_unit")
+importFrom("rvest", "html_attr", "html_nodes", "read_html")
 importFrom("RODBC", "odbcConnect", "odbcClose", "sqlFetch")
-importFrom("stats", "formula","na.omit","update")
-importFrom("utils", "data","download.file", "unzip","write.csv")
-export(dbhMetric,dendroMetrics,metrics2Vol,nfiMetrics,readNFI,urlToTemp)
+importFrom("stats", "formula","na.omit","update", "setNames")
+importFrom("utils", "data","download.file","getFromNamespace", "getS3method","packageVersion", "unzip","write.csv")
+export(dbhMetric,
+       default_external_volume_methods,
+       default_snfi_volume_equations,
+       dendroMetrics,externalMetrics,
+       external_dendroMetrics,
+       externalMetrics2Vol,
+       external_volume_method_registry,
+       fetchNFI,
+       getNFI,
+       inventoryMetrics,
+       new_external_schema,
+       new_volume_method,
+       new_concentric_design,
+       new_inventory_design,
+       nfiMetrics,
+       print.concentric_design,
+       print.inventory_design,
+       print.external_schema,
+       snfi_design,metrics2Vol,
+       snfi_volume_method_registry,
+       readNFI,
+       trees_per_ha,
+       update.external_dendroMetrics,
+       update.dendroMetrics,
+       update.inventoryMetrics,
+       update.list)
+S3method(trees_per_ha, concentric_design)
+S3method(trees_per_ha, inventory_design)
+S3method(print, concentric_design)
+S3method(print, inventory_design)
+S3method(print, external_schema)
+S3method(update,dendroMetrics)
+S3method(update,external_dendroMetrics)
+S3method(update,inventoryMetrics)
+S3method(update, list)
+
+
+
 

@@ -1,40 +1,163 @@
+default_snfi_volume_equations <- function(
+### Return the default SNFI volume-equation registry.  Creates the
+### default set of method definitions used by `metrics2Vol()` to
+### compute tree-level volume variables. Each registry entry describes
+### how one output is computed, including the target column name,
+### equation function, unit conversion, argument builder, and fallback
+### rule.
+                                          ) {
+    ##title<< Default SNFI volume-equation methods
+    list(
+        V = list(
+            output = "v",
+            fun_name = NULL,
+            unit = "m3 tree-1",
+            raw_unit = "m3 tree-1",
+            scale_to_m3 = 1,
+            build_args = function(ctx, pars, resolved) list(),
+            fallback = function(ctx, pars, resolved) resolved$legacy_v_m3 %||% NA_real_
+        ),
+        VCC = list(
+            output = "vcc",
+            fun_name = "get_snfi_vcc",
+            unit = "m3 tree-1",
+            raw_unit = "dm3 tree-1",
+            scale_to_m3 = 1 / 1000,
+            build_args = function(ctx, pars, resolved) {
+                list(dbh_mm = ctx$d_mm, h_t = ctx$h_m, pars = pars)
+            },
+            fallback = function(ctx, pars, resolved) resolved$legacy_v_m3 %||% NA_real_
+        ),
+        VSC = list(
+            output = "vsc",
+            fun_name = "get_snfi_vsc",
+            unit = "m3 tree-1",
+            raw_unit = "dm3 tree-1",
+            scale_to_m3 = 1 / 1000,
+            build_args = function(ctx, pars, resolved) {
+                vcc_m3 <- resolved$vcc_m3
+                if (is.null(vcc_m3) || is.na(vcc_m3))
+                    vcc_m3 <- resolved$legacy_v_m3
+                if (is.null(vcc_m3) || is.na(vcc_m3))
+                    return(NULL)
+                list(vcc = vcc_m3 * 1000, pars = pars)
+            },
+            fallback = function(ctx, pars, resolved) NA_real_
+        )
+    )
+}
+
+
+snfi_volume_method_registry <- function(
+                                        ### Return the active SNFI
+                                        ### volume-method registry.
+###
+### Builds the final registry of SNFI volume methods used by
+### `metrics2Vol()` by combining the defaults with optional
+### user-defined overrides or additions. The returned registry
+### controls which parameters are available and how each requested
+### volume output is computed.
+    equations = get0("snfi_volume_equations",
+                     inherits = TRUE,
+                     ifnotfound = NULL)
+    ) {
+    ##title<< Build the active registry of SNFI volume methods
+    defaults <- default_snfi_volume_equations()
+
+    if (is.null(equations))
+        equations <- defaults
+
+    if (!is.list(equations) || is.null(names(equations)))
+        stop("'snfi_volume_equations' must be a named list.", call. = FALSE)
+
+    extra <- getOption("basifoR.snfi_volume_methods")
+    if (!is.null(extra)) {
+        if (!is.list(extra) || is.null(names(extra)))
+            stop("Option 'basifoR.snfi_volume_methods' must be a named list.",
+                 call. = FALSE)
+        equations <- utils::modifyList(equations, extra)
+    }
+
+    utils::modifyList(defaults, equations)
+}
+
 metrics2Vol <- structure(function(
-                                  ### Computes one or more tree-level
-### volume variables from Spanish National Forest Inventory data. The
-### function standardizes the input, selects the appropriate volume
-### model for each tree, applies equation-based methods defined in a
-### method registry, converts results to cubic metres, and optionally
-### keeps legacy outputs (from previous versions of the package) and
-### provenance information.
+### Compute one or more tree-level volume variables from Spanish National
+### Forest Inventory metrics or from raw inputs that can be standardized
+### by `nfiMetrics()`. The function matches each tree to a volume method,
+### evaluates the requested equations, converts returned values to cubic
+### metres, and can also append legacy estimates or provenance metadata.
     nfi,
-    ### Input accepted by `nfiMetrics()`, or a precomputed `"nfiMetrics"`
-    ### object with tree-level metrics.
+    ### Either an object already returned by `nfiMetrics()`, or any input
+    ### accepted by `nfiMetrics()` so tree-level metrics can be built
+    ### before the volume calculation.
     cub.met = "freq",
-    ### Cubication selector used when several coefficient rows match.
+    ### Character scalar used when more than one coefficient row matches a
+    ### tree. The value is forwarded to coefficient matching and to the
+    ### legacy fallback when that estimate is requested.
     parametro = c("VCC"),
-    ### One or more volume outputs to compute.
+    ### Character vector naming one or more volume outputs to compute.
+    ### Values are matched against the names of `method_registry`; the
+    ### default SNFI registry defines `"V"`, `"VCC"`, and `"VSC"`.
     keep.var = TRUE,
-    ### Keep auxiliary coefficient columns when available.
+    ### Logical; if `FALSE`, drop auxiliary coefficient columns from the
+    ### returned object when they are present.
     keep.legacy = FALSE,
-    ### Also return the legacy volume estimate for backward compatibility.
+    ### Logical; if `TRUE`, also return the legacy `"V"` estimate in
+    ### addition to the outputs requested in `parametro`.
     method_registry = snfi_volume_method_registry(),
-    ### Registry that maps each requested output to its equation function,
-    ### output column name, units, and fallback rule.
+    ### Named list describing how each requested output is computed. Each
+    ### method usually defines an output name, an equation function or
+    ### function name, units, a conversion factor to cubic metres, an
+    ### argument builder, and a fallback rule; optional `pars` or
+    ### `get_pars` components can supply coefficients.
     track_provenance = FALSE,
-    ### Add per-row provenance columns and audit metadata.
+    ### Logical; if `TRUE`, append per-output provenance columns and a
+    ### `"volume_meta"` attribute for auditing and reproducibility.
     ...
-    ### Passed to `nfiMetrics()` when `nfi` is not already an
-    ### `"nfiMetrics"` object.
+    ### Additional arguments passed to `nfiMetrics()` when `nfi` is not
+    ### already an `"nfiMetrics"` object.
 ) {
-    ##title<< Compute tree-level volume variables from NFI metrics
+    ##title<< Compute tree-level volume outputs from Spanish NFI metrics
     ##details<<
-    ##details<< Computes requested volume outputs from standardized NFI
-    ##details<< tree metrics using registry-based methods and optional
-    ##details<< fallback to legacy estimates.
+    ##details<< \code{metrics2Vol()} adds one or more tree-level volume
+    ##details<< variables to an input data set. When \code{nfi} is not
+    ##details<< already an object of class \code{"nfiMetrics"}, the
+    ##details<< function first standardizes it with \code{\link{nfiMetrics}}.
+    ##details<<
+    ##details<< Requested outputs are identified through \code{parametro}
+    ##details<< and resolved through \code{method_registry}. In the default
+    ##details<< registry, \code{"V"} returns the legacy total volume,
+    ##details<< \code{"VCC"} computes merchantable volume over bark, and
+    ##details<< \code{"VSC"} computes merchantable volume under bark.
+    ##details<< Custom registries can define additional outputs or override
+    ##details<< the shipped methods.
+    ##details<<
+    ##details<< The function normalizes diameter and height units internally
+    ##details<< before evaluating equations, and it always returns computed
+    ##details<< volume outputs in cubic metres per tree. If the input already inherits
+    ##details<< from \code{"nfiMetrics"}, the relevant variables must carry
+    ##details<< named unit metadata in \code{attr(x, "units")}. 
+    ##details<<
+    ##details<< Set \code{keep.legacy = TRUE} to append the legacy
+    ##details<< \code{"V"} estimate for backward compatibility. Set
+    ##details<< \code{track_provenance = TRUE} to append per-output source,
+    ##details<< status, raw-unit, scale, and model columns, together with a
+    ##details<< \code{"volume_meta"} attribute that records method settings.
     ##value<<
-    ##value<< A data.frame with the requested volume outputs added.
-    ##seealso<< nfiMetrics, snfi_volume_method_registry
-    ##note<< Registry-based dispatcher for volume equations.
+    ##value<< A \code{data.frame} containing the original columns plus the
+    ##value<< requested volume outputs.
+    ##value<<
+    ##value<< The returned object inherits class \code{"metrics2vol"} and
+    ##value<< preserves the input classes. Attribute \code{attr(x, "units")}
+    ##value<< stores the units of surviving input variables and computed
+    ##value<< outputs. Attribute \code{attr(x, "nfi.nr")} stores the resolved
+    ##value<< inventory edition. If present in the input, the sampling-design
+    ##value<< metadata in \code{attr(x, "design_meta")} is propagated to the
+    ##value<< result. When \code{track_provenance = TRUE}, the result also
+    ##value<< includes a \code{"volume_meta"} attribute describing the
+    ##value<< returned units and method configuration.
+    ##seealso<< nfiMetrics, snfi_volume_method_registry, default_snfi_volume_equations
     
 ## Return early for `NULL` input.
     nfi. <- nfi
@@ -707,10 +830,48 @@ need_legacy <- keep.legacy || "V" %in% parametro
 
     out
 },
-ex = c(
-    "if (FALSE) {",
-    "  x <- nfiMetrics('toledo')",
-    "  y <- metrics2Vol(x, parametro = c('VCC', 'VSC'))",
-    "  head(y[c('nfi.nr', 'pr', 'especie', 'vcc', 'vsc')])",
-    "}"
-))
+ex = function(){
+    ## Minimal self-contained example using a custom method registry
+    x <- data.frame(
+        nfi.nr = 4,
+        pr = 45,
+        especie = 21,
+        d = c(250, 300),
+        h = c(12, 15)
+    )
+
+    attr(x, "units") <- c(d = "mm", h = "m")
+    attr(x, "nfi.nr") <- 4
+    class(x) <- c("nfiMetrics", class(x))
+
+    toy_registry <- list(
+        VCC = list(
+            output = "vcc",
+            fun = function(dbh_mm, h_t, pars) pars$a + pars$b * dbh_mm^2 * h_t,
+            unit = "m3 tree-1",
+            raw_unit = "dm3 tree-1",
+            scale_to_m3 = 1 / 1000,
+            build_args = function(ctx, pars, resolved) {
+                list(dbh_mm = ctx$d_mm, h_t = ctx$h_m, pars = pars)
+            },
+            fallback = function(ctx, pars, resolved) NA_real_,
+            pars = data.frame(
+                pr = 45,
+                especie = 21,
+                nfi.nr = 4,
+                a = 0,
+                b = 1e-05
+            )
+        )
+    )
+
+    y <- metrics2Vol(
+        x,
+        parametro = "VCC",
+        method_registry = toy_registry,
+        keep.var = FALSE
+    )
+
+    y[, c("nfi.nr", "pr", "especie", "vcc")]
+    attr(y, "units")
+})

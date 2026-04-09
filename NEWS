@@ -1,15 +1,83 @@
-Changes in basifoR 0.4.1
+# basifoR 0.7.7
 
-- Fixed missing Rd \link{} targets by providing package anchors for:  
-  - `readNFI.Rd`: added links for `read.dbf`, `RODBC`, and `mdb.get`.  
-  - `urlToTemp.Rd`: ensured proper linking for `timeout`.  
+## Major changes
 
+* Expanded **basifoR** from an SNFI-focused toolkit into a design-aware inventory workflow package that also supports external inventories with custom schemas, sampling designs, and volume methods.
 
+* Added a unified workflow dispatcher, `inventoryMetrics()`, with `backend = "auto"`, `"snfi"`, or `"external"` to route complete workflows through the appropriate backend.
 
-Changes in basifoR 0.4
+* Added external-inventory workflow functions: `externalMetrics()`, `externalMetrics2Vol()`, and `external_dendroMetrics()`.
 
-- `urlToTemp`: The API for the SNFI has changed.  
-  The old domain `'www.mapama.gob.es'` has been replaced with `'www.miteco.gob.es'`.  
-- Internet resources now fail gracefully, providing an informative message  
-  if a resource is unavailable or has changed. This prevents check warnings  
-  or errors.
+* Added reusable sampling-design helpers: `new_inventory_design()`, `new_concentric_design()`, `snfi_design()`, `trees_per_ha()`, and print methods for design objects.
+
+* Refactored SNFI volume computation into a registry-based system through `metrics2Vol()`, `default_snfi_volume_equations()`, and `snfi_volume_method_registry()`.
+
+* Added external volume-method infrastructure through `new_volume_method()`, `default_external_volume_methods()`, `external_volume_method_registry()`, and `new_external_schema()` to support custom mappings, parameter tables, and equation selection.
+
+* Added `update()` methods for `dendroMetrics`, `external_dendroMetrics`, and `inventoryMetrics` objects to support reproducible re-evaluation of stored calls.
+
+## API changes
+
+* `metrics2Vol()` now uses a registry-based interface with `parametro`, `method_registry`, `keep.legacy`, and `track_provenance`.
+
+* `metrics2Vol()` no longer behaves as a legacy `v`-only wrapper by default. Users who need the previous behavior should request the legacy output explicitly.
+
+* `dbhMetric()` and `nfiMetrics()` now accept an explicit `design` argument instead of relying only on hard-coded SNFI expansion logic for tree-density calculations.
+
+* `dendroMetrics()` now accepts lists of inputs and supports parallel execution through `mc.cores`.
+
+## Improvements
+
+* `fetchNFI()` gained `file_name` filtering so users can extract specific files from compressed archives.
+
+* `readNFI()` gained explicit `nfi.nr`, `file_ext`, and `file_name` arguments, and now documents zipped CSV workflows in addition to Access and DBF inputs.
+
+* `readNFI()` now performs clearer platform-specific backend checks and provides installation guidance for Microsoft Access drivers on Windows and `mdbtools` on Unix-like systems.
+
+* `dendroMetrics()` now preserves workflow metadata more consistently while aggregating stand-level summaries from tree-level outputs.
+
+* Package examples and documentation now emphasize reproducible, design-aware workflows and broader inventory support beyond the original SNFI-only interface.
+
+## Deprecated and removed
+
+* Removed the long-deprecated `urlToTemp()` helper from the exported interface and documentation. Use `fetchNFI()` instead.
+
+# basifoR 0.6
+
+## Major changes
+
+* The package became installable on 64-bit Windows systems.
+
+* Added `getNFI()`, which can download data from the 2nd to the 4th stages of the Spanish National Forest Inventory using province names or codes as the main argument, removing the need to specify URLs manually.
+
+* `readNFI()` added support for `RODBC::odbcConnectAccess2007()`.
+
+* `urlToTemp()` was deprecated in favor of `fetchNFI()`.
+
+## Minor improvements
+
+* `readNFI()` now converts numeric columns stored as factors back to numeric while preserving character columns.
+
+# basifoR 0.5
+
+## Major changes
+
+* Added support for Access files from the fourth Spanish National Forest Inventory.
+
+## Minor improvements
+
+* `urlToTemp()` gained two new arguments. See the package documentation.
+
+# basifoR 0.4.1
+
+## Documentation fixes
+
+* Fixed missing Rd links by adding package anchors for `readNFI.Rd` and `urlToTemp.Rd`.
+
+# basifoR 0.4
+
+## Major changes
+
+* `urlToTemp()` was updated after the SNFI web API changed from `www.mapama.gob.es` to `www.miteco.gob.es`.
+
+* Internet resources began to fail gracefully with informative messages when the resource was unavailable or had changed.

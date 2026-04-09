@@ -2,8 +2,7 @@ Package: basifoR
 Type: Package
 Title: Retrieval and Processing of the Spanish National Forest
         Inventory
-Version: 0.4.1
-Date: 2025-04-02
+Version: 0.7.7
 Authors@R: 
     c(person(given = "Wilson",
              family = "Lara",
@@ -13,22 +12,41 @@ Authors@R:
       person(given = "Cristobal",
              family = "Ordonez",
              role = "aut",
-	     email = "a_cristo@pvs.uva.es",
+	     email = "angelcristobal.ordonez@uva.es",
 	     comment = c(ORCID = "0000-0001-5354-3760")),
+      person(given = "Aitor",
+             family = "Vázquez-Veloso",
+             role = "aut",
+	     email = "aitor.vazquez.veloso@uva.es",
+	     comment = c(ORCID = "0000-0003-0227-506X")),	     
       person(given = "Felipe",
              family = "Bravo",
              role = "aut",
-	     email = "fbravo@pvs.uva.es",
+	     email = "felipe.bravo@uva.es",
 	     comment = c(ORCID = "0000-0001-7348-6695")))
 Maintainer: Wilson Lara <wilarhen@gmail.com>
-Description: Data sets of the Spanish National Forest Inventory <https://www.miteco.gob.es/es/biodiversidad/servicios/banco-datos-naturaleza/informacion-disponible.html> are processed to compute tree metrics and statistics. Function metrics2Vol() controls most of the routines.
+Description: Fetches, harmonizes, and analyses data from the Spanish National
+    Forest Inventory for reproducible, design-aware forest inventory workflows.
+    Computes tree- and stand-level metrics, applies sampling-based expansion
+    factors, estimates volume, and supports extensible processing for external
+    inventory designs with custom sampling schemes and volume equations.
+URL:
+        https://www.miteco.gob.es/es/biodiversidad/temas/inventarios-nacionales/inventario-forestal-nacional.html
 License: GPL-3
-Depends: R (>= 2.10),RODBC
-Imports: curl,foreign,Hmisc,httr,measurements,stats,utils
+Depends: R (>= 4.4.0)
+Suggests: odbc
+Imports: curl, foreign, Hmisc, httr, measurements, RODBC, rvest, stats,
+        utils
+SystemRequirements: Microsoft Access driver on Windows for Access
+        backends; mdbtools on Unix-like systems
+Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2025-04-02 18:42:36 UTC; wihe
+Packaged: 2026-04-09 20:42:29 UTC; wilar
+Author: Wilson Lara [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>),
+  Cristobal Ordonez [aut] (ORCID:
+    <https://orcid.org/0000-0001-5354-3760>),
+  Aitor Vázquez-Veloso [aut] (ORCID:
+    <https://orcid.org/0000-0003-0227-506X>),
+  Felipe Bravo [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)
 Repository: CRAN
-Date/Publication: 2025-04-02 19:00:02 UTC
-Author: Wilson Lara [aut, cre] (<https://orcid.org/0000-0003-3527-1380>),
-  Cristobal Ordonez [aut] (<https://orcid.org/0000-0001-5354-3760>),
-  Felipe Bravo [aut] (<https://orcid.org/0000-0001-7348-6695>)
+Date/Publication: 2026-04-09 21:00:02 UTC
