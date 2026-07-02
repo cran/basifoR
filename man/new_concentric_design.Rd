@@ -14,19 +14,19 @@ expansion factors, and returns an object of class
     metadata = NULL)}
 \arguments{
   \item{radii_m}{\code{numeric}. Subplot radii in metres, one value per
-<< tally tier.}
+tally tier.}
   \item{min_dbh_cm}{\code{numeric}. Minimum diameter at breast height in
-<< \code{cm} required for a tree to be tallied in each
-<< subplot. Must have the same length as
-<< \code{radii_m}. The function sorts these thresholds in
-<< ascending order and reorders the paired radii
-<< accordingly.}
+\code{cm} required for a tree to be tallied in each
+subplot. Must have the same length as
+\code{radii_m}. The function sorts these thresholds in
+ascending order and reorders the paired radii
+accordingly.}
   \item{name}{\code{character(1)}. Human-readable design \code{name}
-<< stored in the returned object.}
+stored in the returned object.}
   \item{metadata}{Optional \code{list}. Additional design \code{metadata}
-<< merged with default entries for
-<< \code{shape = "circular"} and the ordered
-<< \code{radii_m}.}
+merged with default entries for
+\code{shape = "circular"} and the ordered
+\code{radii_m}.}
 }
 \details{The function delegates to \code{\link{new_inventory_design}}
 
@@ -57,7 +57,12 @@ trees-per-hectare expansion factors, and
 
 \code{metadata} contains the merged design \code{metadata}.}
 
-\author{Wilson Lara <wilarhen@gmail.com> [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>), Cristobal Ordonez <angelcristobal.ordonez@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-5354-3760>), Aitor Vázquez-Veloso <aitor.vazquez.veloso@uva.es> [aut] (ORCID: <https://orcid.org/0000-0003-0227-506X>), Felipe Bravo <felipe.bravo@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
+\author{Wilson Lara [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>),
+Cristobal Ordonez [aut] (ORCID:
+<https://orcid.org/0000-0001-5354-3760>),
+Aitor Vázquez-Veloso [aut] (ORCID:
+<https://orcid.org/0000-0003-0227-506X>),
+Felipe Bravo [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
 
 
 

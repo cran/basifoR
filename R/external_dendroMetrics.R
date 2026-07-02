@@ -3,7 +3,7 @@ external_dendroMetrics <- structure(function
 ##description<< Process external tree data through a unified workflow that standardizes measurements, computes missing dendrometric variables, optionally derives volume outputs, and returns either tree-level records or grouped stand-level summaries.
 ##description<< The function can work from already standardized inputs or from raw external tables, and it supports repeated processing of several tables with optional parallel execution.
 ##details<< This wrapper mirrors the arguments and behaviour of \code{dendroMetrics()}.
-##details<< When \code{summ.vr = NULL}, the function returns tree-level records after applying \code{cut.dt}. When \code{summ.vr} contains one or more grouping variables, the function aggregates by those groups, reporting weighted means for \code{d}, \code{h}, and \code{Hd}, arithmetic sums for \code{ba}, \code{n}, and volume variables, and quadratic mean diameter \code{dg} when diameter and trees-per-hectare are available.
+##details<< When \code{summ.vr = NULL}, the function returns tree-level records after applying \code{cut.dt}. When \code{summ.vr} contains one or more grouping variables, the function aggregates by those groups, reporting weighted means for \code{d}, \code{h}, \code{Hd}, and \code{Dd}, arithmetic sums for \code{ba} and volume variables, total stand density as \code{n_tot}, and quadratic mean diameter \code{dg} when diameter and expansion factors are available.
 ##details<< The function can work from already standardized inputs or from raw external tables. If requested metrics are missing and \code{compute_metrics_if_needed = TRUE}, it calls \code{externalMetrics()} internally, so raw inputs usually need a valid \code{design} plus diameter and, when relevant, height mappings. When \code{schema} is supplied, it provides reusable defaults for column aliases, units, grouping variables, and retained columns, while explicit arguments supplied in the call override those defaults.
 ##details<< Volume outputs are optional. They are computed only when \code{parametro} is supplied explicitly or can be inferred from \code{var} and \code{method_registry}. This lets the same entry point handle metric-only workflows, mixed metric-plus-volume workflows, and repeated processing of several input tables with optional parallel execution through \code{mc.cores}.
 (
@@ -17,19 +17,18 @@ external_dendroMetrics <- structure(function
 ### names to obtain grouped summaries.
     cut.dt = "d == d",
     ### Character filter evaluated on the final table.
-### The expression is evaluated with \verb{eval(parse(...))} after metrics or
-### summaries have been computed.
+### The expression is evaluated after metrics or summaries have been computed. Use \code{n_tot} for grouped stand density.
     report = FALSE,
     ### Whether to write the returned table to \file{report.csv}.
 ### The file is written in the working directory only when \code{report = TRUE}.
     mc.cores = getOption("mc.cores", 1L),
     ### Number of worker processes used when \code{x} is a list.
 ### Values smaller than 1 are reset to 1.
-    var = c("d", "h", "ba", "n", "Hd"),
+    var = c("d", "h", "ba", "n", "Hd", "Dd"),
     ### Requested variables.
 ### Typical metric requests are \code{"d"}, \code{"h"}, \code{"ba"},
-### \code{"n"}, and \code{"Hd"}; volume-like names can also trigger volume
-### processing.
+### \code{"n"}, \code{"Hd"}, and \code{"Dd"}; volume-like names can also
+### trigger volume processing.
     parametro = NULL,
     ### Optional volume-method codes, for example \code{"V"}.
 ### If \code{NULL}, the function tries to infer required methods from
@@ -64,12 +63,10 @@ external_dendroMetrics <- structure(function
     colmap = NULL,
     ### Optional aliases that update the default mappings.
 ### Use this when source names differ from the expected volume or metric names.
-    metric_colmap = list(
+    metric_colmap = list( ##<< Aliases used to resolve raw diameter and height columns during internal metric computation.
         d = c("d", "dbh", "diameter", "diameter_mm"),
         h = c("h", "height", "height_m")
     ),
-    ### Aliases used to resolve raw diameter and height columns.
-### These aliases are used during internal metric computation.
     d_unit = NULL,
     ### Optional diameter unit override shared with schema resolution.
 ### Accepted values are \code{"mm"} and \code{"cm"}.
@@ -90,7 +87,7 @@ external_dendroMetrics <- structure(function
     ### Optional output unit for tree-level height values.
 ### Only used when \code{summ.vr = NULL}. Accepted values are \code{"m"},
 ### \code{"dm"}, and \code{"cm"}.
-    volume_colmap = list(
+    volume_colmap = list( ##<< Aliases used by the optional volume stage to locate metrics, species, region, and equation-set selectors.
         d = c("d"),
         h = c("h"),
         dnm = c("dnm", "d_nm", "D.n.m."),
@@ -99,8 +96,6 @@ external_dendroMetrics <- structure(function
         region = c("region", "pr"),
         equation_set = c("equation_set", "eqset", "tariff", "model_set")
     ),
-    ### Aliases used by the optional volume stage.
-### Used to locate metrics, species, region, and equation-set selectors.
     selector = c("first", "priority")[1],
     ### Rule used by \code{externalMetrics2Vol()} when several matches remain.
 ### \code{"first"} keeps the first surviving row; \code{"priority"} uses the
@@ -117,20 +112,25 @@ external_dendroMetrics <- structure(function
     ### Optional \code{"external_schema"} object created by \code{new_external_schema()}.
 ### It centralizes column aliases, units, grouping defaults, and kept columns
 ### for repeated workflows.
-    domheight_fun = null_or(
-    get0("domheight_strict", mode = "function", inherits = TRUE),
-    get0("domheight", mode = "function", inherits = TRUE)
-),
-        ### Function used to compute dominant height.
-### Used when \code{"Hd"} is requested during internal metric computation.
+    domheight_fun = NULL,
+    ### Optional function used to compute dominant height.
+### When supplied, it overrides \code{domheight_method} during internal metric computation.
+    domdiameter_fun = NULL,
+    ### Optional function used to compute dominant diameter.
+### Supply it with a custom \code{domheight_fun} when \code{"Dd"} is requested;
+### it must accept standardized \code{d} and \code{n} arguments.
+    domheight_method = "Hd_strict",
+    ### Dominant-height method code resolved through \code{domheight_registry}.
+    domheight_registry = dominant_height_method_registry(),
+    ### Named registry created with \code{dominant_height_method_registry()}.
     ...
     ### Additional arguments passed to downstream helpers.
 ### These are mainly useful for custom options in the internal metric or
 ### volume-processing steps.
 ) {
-    ##value<< A \code{data.frame} with class \verb{c("external_dendroMetrics", "dendroMetrics", ...)}.
-    ##value<< With \code{summ.vr = NULL}, the returned rows represent tree-level records, optionally converted to \code{tree_d_unit_out} and \code{tree_h_unit_out}. With \code{summ.vr} supplied, the returned rows represent grouped summaries and include standardized summary units such as \code{"cm"}, \code{"m"}, \code{"m2 ha-1"}, \code{"ha-1"}, and \code{"m3 ha-1"} when those variables are present.
-    ##value<< The returned object stores the matched call in \code{attr(out, "call")}. When available, it also preserves \code{"units"}, \code{"design_meta"}, and \code{"volume_meta"} attributes from upstream processing, which makes the result suitable for downstream inspection and update methods.
+    ##value<< A data.frame with classes \code{"external_dendroMetrics"}, \code{"dendroMetrics"}, and \code{"data.frame"}.
+    ##value<< With \code{summ.vr = NULL}, the returned rows represent tree-level records and retain the expansion-factor column \code{n}. With \code{summ.vr} supplied, grouped summaries return total stand density as \code{n_tot}, together with standardized units such as \code{"cm"}, \code{"m"}, \code{"m2 ha-1"}, \code{"ha-1"}, and \code{"m3 ha-1"} when those variables are present.
+    ##value<< The returned object stores the matched call in \code{attr(out, "call")}. When available, it also preserves \code{"units"}, \code{"design_meta"}, \code{"dominant_height_meta"}, \code{"dominant_diameter_meta"}, and \code{"volume_meta"} attributes from upstream processing, which makes the result suitable for downstream inspection and update methods.
 
     call0 <- match.call(expand.dots = TRUE)
 
@@ -287,6 +287,7 @@ external_dendroMetrics <- structure(function
             ba = c("ba"),
             n  = c("n"),
             hd = c("hd", "Hd"),
+            dd = c("dd", "Dd"),
             character(0)
         )
 
@@ -334,14 +335,16 @@ external_dendroMetrics <- structure(function
 
         volume_requested <- length(parametro %||% character(0)) > 0L
         needs_n_for_summary <- !is.null(summ.vr) && (
-            length(intersect(tolower(var), c("d", "h", "hd", "ba"))) > 0L ||
+            length(intersect(tolower(var), c("d", "h", "hd", "dd", "ba"))) > 0L ||
             volume_requested
         )
 
         out <- unique(c(var, if (needs_n_for_summary) "n"))
 
-        if ("Hd" %in% out || "hd" %in% tolower(out))
+        if ("hd" %in% tolower(out))
             out <- unique(c(out, "d", "h", "n"))
+        if ("dd" %in% tolower(out))
+            out <- unique(c(out, "d", "n"))
 
         out
     }
@@ -357,6 +360,9 @@ external_dendroMetrics <- structure(function
         metric_h_unit,
         compute_metrics_if_needed,
         domheight_fun,
+        domdiameter_fun,
+        domheight_method,
+        domheight_registry,
         ...
     ) {
         if (is.null(x))
@@ -403,7 +409,10 @@ external_dendroMetrics <- structure(function
                 d_unit = metric_d_unit,
                 h_unit = metric_h_unit,
                 keep_cols = keep_needed,
-                domheight_fun = domheight_fun
+                domheight_fun = domheight_fun,
+                domdiameter_fun = domdiameter_fun,
+                domheight_method = domheight_method,
+                domheight_registry = domheight_registry
             )
         )
     }
@@ -430,6 +439,9 @@ external_dendroMetrics <- structure(function
         track_provenance,
         compute_metrics_if_needed,
         domheight_fun,
+        domdiameter_fun,
+        domheight_method,
+        domheight_registry,
         ...
     ) {
         x0 <- x
@@ -486,6 +498,9 @@ external_dendroMetrics <- structure(function
                 metric_d_unit = metric_d_unit,
                 metric_h_unit = metric_h_unit,
                 domheight_fun = domheight_fun,
+                domdiameter_fun = domdiameter_fun,
+                domheight_method = domheight_method,
+                domheight_registry = domheight_registry,
                 ...
             )
         } else {
@@ -500,12 +515,17 @@ external_dendroMetrics <- structure(function
                 metric_h_unit = metric_h_unit,
                 compute_metrics_if_needed = compute_metrics_if_needed,
                 domheight_fun = domheight_fun,
+                domdiameter_fun = domdiameter_fun,
+                domheight_method = domheight_method,
+                domheight_registry = domheight_registry,
                 ...
             )
         }
 
         design_meta <- attr(dt, "design_meta")
         volume_meta <- attr(dt, "volume_meta")
+        dominant_height_meta <- attr(dt, "dominant_height_meta")
+        dominant_diameter_meta <- attr(dt, "dominant_diameter_meta")
 
         names(dt) <- tolower(names(dt))
 
@@ -523,7 +543,8 @@ external_dendroMetrics <- structure(function
             tree_target_units <- c(
                 d = tree_d_unit_out,
                 h = tree_h_unit_out,
-                hd = tree_h_unit_out
+                hd = tree_h_unit_out,
+                dd = tree_d_unit_out
             )
             tree_target_units <- tree_target_units[
                 !is.na(tree_target_units) & nzchar(tree_target_units)
@@ -541,6 +562,10 @@ external_dendroMetrics <- structure(function
                 attr(dt, "design_meta") <- design_meta
             if (!is.null(volume_meta))
                 attr(dt, "volume_meta") <- volume_meta
+            if (!is.null(dominant_height_meta))
+                attr(dt, "dominant_height_meta") <- dominant_height_meta
+            if (!is.null(dominant_diameter_meta))
+                attr(dt, "dominant_diameter_meta") <- dominant_diameter_meta
 
             if (report)
                 write.csv(dt, file = "report.csv", row.names = FALSE)
@@ -562,6 +587,7 @@ external_dendroMetrics <- structure(function
             d = "cm",
             h = "m",
             hd = "m",
+            dd = "cm",
             ba = "m2",
             n = "",
             v = "m3",
@@ -572,7 +598,7 @@ external_dendroMetrics <- structure(function
         )
         dt <- convert_cols_to_units(dt, target_units)
 
-        weighted_mean_vars <- intersect(c("d", "h", "hd"), names(dt))
+        weighted_mean_vars <- intersect(c("d", "h", "hd", "dd"), names(dt))
         sum_vars <- intersect(c("ba", "n", "v", "vcc", "vsc", "iavc", "vle"),
                               names(dt))
 
@@ -588,7 +614,7 @@ external_dendroMetrics <- structure(function
         msp <- Filter("nrow", msp)
 
         fsum <- function(z) {
-            weighted_source_vars <- intersect(c("d", "h", "hd"), names(z))
+            weighted_source_vars <- intersect(c("d", "h", "hd", "dd"), names(z))
             sum_source_vars <- intersect(c("ba", "n", "v", "vcc", "vsc", "iavc", "vle"), names(z))
 
             z_work <- z
@@ -626,6 +652,11 @@ external_dendroMetrics <- structure(function
                     summ["dg"] <- NA_real_
                 }
             }
+
+            # Preserve n for tree-level expansion factors and use n_tot only
+            # for their grouped total.
+            if ("n" %in% names(summ))
+                names(summ)[names(summ) == "n"] <- "n_tot"
 
             summ <- summ[order(names(summ))]
             summ <- sapply(summ, function(v) round(v, 3))
@@ -669,9 +700,10 @@ external_dendroMetrics <- structure(function
             d = "cm",
             h = "m",
             hd = "m",
+            dd = "cm",
             dg = "cm",
             ba = "m2 ha-1",
-            n = "ha-1",
+            n_tot = "ha-1",
             v = "m3 ha-1",
             vcc = "m3 ha-1",
             vsc = "m3 ha-1",
@@ -683,6 +715,10 @@ external_dendroMetrics <- structure(function
             attr(resm, "design_meta") <- design_meta
         if (!is.null(volume_meta))
             attr(resm, "volume_meta") <- volume_meta
+        if (!is.null(dominant_height_meta))
+            attr(resm, "dominant_height_meta") <- dominant_height_meta
+        if (!is.null(dominant_diameter_meta))
+            attr(resm, "dominant_diameter_meta") <- dominant_diameter_meta
 
         if (report)
             write.csv(resm, file = "report.csv", row.names = FALSE)
@@ -730,7 +766,9 @@ external_dendroMetrics <- structure(function
         "design", "parameter_table", "method_registry", "metric_levels",
         "metric_keep_cols", "metric_colmap", "metric_d_unit", "metric_h_unit",
         "tree_d_unit_out", "tree_h_unit_out", "volume_colmap", "selector", "track_provenance",
-        "compute_metrics_if_needed", "var", "parametro", "domheight_fun"
+        "compute_metrics_if_needed", "var", "parametro", "domheight_fun",
+        "domdiameter_fun",
+        "domheight_method", "domheight_registry"
     )
 
     arg_values <- list(
@@ -750,7 +788,10 @@ external_dendroMetrics <- structure(function
         compute_metrics_if_needed = compute_metrics_if_needed,
         var = var,
         parametro = parametro,
-        domheight_fun = domheight_fun
+        domheight_fun = domheight_fun,
+        domdiameter_fun = domdiameter_fun,
+        domheight_method = domheight_method,
+        domheight_registry = domheight_registry
     )
 
     x_list <- recycle_arg(x, n_inputs, "x")

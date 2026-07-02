@@ -1,10 +1,6 @@
-new_external_schema <- structure(function #Define a schema for external inventory workflows
-### Create a reusable \code{"external_schema"} object that records how
-### source columns in an external inventory correspond to the standardized
-### field names used by the basifoR external workflow. The schema can also
-### store declared measurement units, default grouping levels, columns to
-### preserve during processing, and auxiliary defaults that wrapper
-### functions may reuse across repeated calls.
+new_external_schema <- structure(function
+##title<< Define a schema for external inventory workflows
+##description<< Create a reusable \code{"external_schema"} object that records how source columns in an external inventory correspond to the standardized field names used by the basifoR external workflow. The schema can also store declared measurement units, default grouping levels, columns to preserve during processing, and auxiliary defaults that wrapper functions may reuse across repeated calls.
 (
     colmap, ##<< Named \code{list} mapping standardized variables to one or more candidate source column names in the input data.
     units = list(), ##<< Named \code{list} of declared units for standardized variables, usually entries such as \code{list(d = "mm", h = "m")}.
@@ -12,7 +8,6 @@ new_external_schema <- structure(function #Define a schema for external inventor
     keep_cols = NULL, ##<< Optional \code{character} vector naming source columns that should be retained in downstream outputs.
     defaults = list() ##<< Optional named \code{list} of auxiliary defaults or metadata that wrappers may reuse.
 ) {
-    ##description<< Create a reusable schema with column aliases, units, default grouping settings, retained columns, and optional defaults for the external basifoR workflow.
     ##details<<
     ##details<< The constructor standardizes all mapping entries to
     ##details<< non-empty character vectors. This lets wrappers search for
@@ -83,7 +78,7 @@ new_external_schema <- structure(function #Define a schema for external inventor
 })
 
 
-print.external_schema <- function #Print an external schema summary
+print.external_schema <- structure(function
 ##title<< Print an external schema summary
 ##description<< Display the column mappings, declared units, and default grouping levels stored in an \code{"external_schema"} object.
 (
@@ -105,7 +100,15 @@ print.external_schema <- function #Print an external schema summary
         cat("Levels: ", paste(x$levels, collapse = ", "), "\n", sep = "")
     invisible(x)
     ##value<< The input \code{"external_schema"} object, returned invisibly.
-}
+}, ex = function() {
+    sch <- new_external_schema(
+        colmap = list(plot = "plot_id", d = "dbh_mm", h = "height_m"),
+        units = list(d = "mm", h = "m"),
+        levels = "plot_id"
+    )
+
+    print.external_schema(sch)
+})
 
 
 .resolve_external_schema <- function(
@@ -178,4 +181,3 @@ if (is.null(.externalMetrics_base) || is.null(.externalMetrics2Vol_base) || is.n
         call. = FALSE
     )
 }
-

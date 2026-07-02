@@ -1,36 +1,7 @@
 \name{readNFI}
 \alias{readNFI}
 \title{Read raw SNFI tables from archives, URLs, or local files}
-\description{Read raw tables from the Spanish National Forest Inventory (SNFI)
-Import raw inventory tables from
-the Spanish National Forest Inventory (SNFI)
-or compatible tabular exports. Use
-\code{readNFI()} when you need the original
-table structure before computing metrics with
-higher-level workflows.
-and compatible inventory exports. The function accepts province
-Import raw inventory tables from
-the Spanish National Forest Inventory (SNFI)
-or compatible tabular exports. Use
-\code{readNFI()} when you need the original
-table structure before computing metrics with
-higher-level workflows.
-identifiers that are resolved to official SNFI download URLs, local
-Import raw inventory tables from
-the Spanish National Forest Inventory (SNFI)
-or compatible tabular exports. Use
-\code{readNFI()} when you need the original
-table structure before computing metrics with
-higher-level workflows.
-or remote \code{.zip} archives, and direct paths to decompressed
-Import raw inventory tables from
-the Spanish National Forest Inventory (SNFI)
-or compatible tabular exports. Use
-\code{readNFI()} when you need the original
-table structure before computing metrics with
-higher-level workflows.
-\code{.csv}, \code{.dbf}, \code{.mdb}, or \code{.accdb} files.
-Import raw inventory tables from
+\description{Import raw inventory tables from
 the Spanish National Forest Inventory (SNFI)
 or compatible tabular exports. Use
 \code{readNFI()} when you need the original
@@ -115,7 +86,12 @@ inferred inventory stage in \code{attr(x, "nfi.nr")}. Third, the
 function returns \code{NULL} when fetching, extraction, or import
 fails, or when no requested file can be read.}
 
-\author{Wilson Lara <wilarhen@gmail.com> [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>), Cristobal Ordonez <angelcristobal.ordonez@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-5354-3760>), Aitor Vázquez-Veloso <aitor.vazquez.veloso@uva.es> [aut] (ORCID: <https://orcid.org/0000-0003-0227-506X>), Felipe Bravo <felipe.bravo@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
+\author{Wilson Lara [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>),
+Cristobal Ordonez [aut] (ORCID:
+<https://orcid.org/0000-0001-5354-3760>),
+Aitor Vázquez-Veloso [aut] (ORCID:
+<https://orcid.org/0000-0003-0227-506X>),
+Felipe Bravo [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
 
 
 

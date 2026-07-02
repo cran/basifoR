@@ -1,13 +1,7 @@
 \name{trees_per_ha.inventory_design}
 \alias{trees_per_ha.inventory_design}
-\title{Compute trees per hectare for generic inventory designs
-Compute trees per hectare for generic inventory designs}
-\description{Match a tree diameter to the tally tier of a generic
-Return the trees-per-hectare expansion factor for a tree measured under a generic inventory \code{design}.
-\code{"inventory_design"} object and return the corresponding
-Return the trees-per-hectare expansion factor for a tree measured under a generic inventory \code{design}.
-trees-per-hectare expansion factor.
-Return the trees-per-hectare expansion factor for a tree measured under a generic inventory \code{design}.}
+\title{Compute trees per hectare for generic inventory designs}
+\description{Return the trees-per-hectare expansion factor for a tree measured under a generic inventory \code{design}.}
 \usage{\method{trees_per_ha}{inventory_design}(design, 
     dbh_cm)}
 \arguments{
@@ -25,7 +19,12 @@ taken from \code{design$sf}, or \code{NA_real_} when the tree
 
 does not belong to any tally tier.}
 
-\author{Wilson Lara <wilarhen@gmail.com> [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>), Cristobal Ordonez <angelcristobal.ordonez@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-5354-3760>), Aitor Vázquez-Veloso <aitor.vazquez.veloso@uva.es> [aut] (ORCID: <https://orcid.org/0000-0003-0227-506X>), Felipe Bravo <felipe.bravo@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
+\author{Wilson Lara [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>),
+Cristobal Ordonez [aut] (ORCID:
+<https://orcid.org/0000-0001-5354-3760>),
+Aitor Vázquez-Veloso [aut] (ORCID:
+<https://orcid.org/0000-0003-0227-506X>),
+Felipe Bravo [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
 
 
 

@@ -1,22 +1,18 @@
 new_inventory_design <- structure(function
-### Build a generic inventory design from tally areas and minimum DBH
-### thresholds. The function stores each tally tier, computes its
-### trees-per-hectare expansion factor, and returns an object of class
-### \code{"inventory_design"} for use in inventory workflows.
 (sample_area_m2, ##<< \code{numeric}. Positive sampled area, in square
-                 ##<< metres, for each tally tier. Supply one value
-                 ##<< per diameter threshold.
+                 ## metres, for each tally tier. Supply one value
+                 ## per diameter threshold.
  min_dbh_cm = 0, ##<< \code{numeric}. Minimum diameter at breast height,
-                 ##<< in \code{cm}, required for a tree to enter each
-                 ##<< tally tier. Must have the same length as
-                 ##<< \code{sample_area_m2}. The function sorts these
-                 ##<< thresholds in ascending order and reorders the
-                 ##<< paired sampled areas accordingly.
+                 ## in \code{cm}, required for a tree to enter each
+                 ## tally tier. Must have the same length as
+                 ## \code{sample_area_m2}. The function sorts these
+                 ## thresholds in ascending order and reorders the
+                 ## paired sampled areas accordingly.
  name = "custom", ##<< \code{character(1)}. Human-readable label stored
-                  ##<< in the returned design object.
+                  ## in the returned design object.
  metadata = NULL ##<< Optional \code{list}. Extra design metadata stored
-                 ##<< unchanged, for example plot shape, subplot radii,
-                 ##<< side length, strip dimensions, or field notes.
+                 ## unchanged, for example plot shape, subplot radii,
+                 ## side length, strip dimensions, or field notes.
 ) {
     ##title<< Create a generic inventory sampling design
     ##description<< Construct a generic \code{"inventory_design"} object from sampled areas and minimum DBH thresholds.

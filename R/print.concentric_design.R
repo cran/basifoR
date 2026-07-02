@@ -1,8 +1,6 @@
 print.concentric_design <- structure(function
-### Display the main components of a \code{"concentric_design"} object:
-### design name, subplot radii, minimum diameters, and expansion factors.
 (x,   ##<< Object of class \code{"concentric_design"}, typically
-      ##<< created by \code{\link{new_concentric_design}}.
+      ## created by \code{\link{new_concentric_design}}.
  ...  ##<< Further arguments passed to methods. Currently unused.
 ) {
     ##title<< Print a concentric plot design

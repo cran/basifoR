@@ -5,10 +5,29 @@ importFrom("httr", "GET","http_error","message_for_status","modify_url","status_
 importFrom("measurements", "conv_unit")
 importFrom("rvest", "html_attr", "html_nodes", "read_html")
 importFrom("RODBC", "odbcConnect", "odbcClose", "sqlFetch")
-importFrom("stats", "formula","na.omit","update", "setNames")
-importFrom("utils", "data","download.file","getFromNamespace", "getS3method","packageVersion", "unzip","write.csv")
-export(dbhMetric,
+importFrom("sf",
+           "st_as_sf",
+           "st_centroid",
+           "st_combine",
+           "st_crs",
+           "st_drop_geometry",
+           "st_geometry",
+           "st_is_empty",
+           "st_point",
+           "st_sf",
+           "st_sfc",
+           "st_transform",
+           "st_read")
+importFrom("stats", "formula","na.omit","update", "setNames","median")
+importFrom("tools", "file_ext", "file_path_sans_ext", "R_user_dir")
+importFrom("utils", "data","download.file","getFromNamespace", "getS3method","read.table","packageVersion", "unzip","write.csv")
+export(addNFIsf,
+       addNFIcoords,
+       dbhMetric,
        default_external_volume_methods,
+       new_dominant_height_method,
+       default_dominant_height_methods,
+       dominant_height_method_registry,
        default_snfi_volume_equations,
        dendroMetrics,externalMetrics,
        external_dendroMetrics,
@@ -17,6 +36,7 @@ export(dbhMetric,
        fetchNFI,
        getNFI,
        inventoryMetrics,
+       listNFI_tables,
        new_external_schema,
        new_volume_method,
        new_concentric_design,
@@ -28,11 +48,27 @@ export(dbhMetric,
        snfi_design,metrics2Vol,
        snfi_volume_method_registry,
        readNFI,
+       readNFIcoords,
+       readNFIsf,
        trees_per_ha,
        update.external_dendroMetrics,
        update.dendroMetrics,
        update.inventoryMetrics,
-       update.list)
+       update.list,
+       readNFI_spatial,
+       nfiMetrics_spatial,
+       metrics2Vol_spatial,
+       inventoryMetrics_spatial,
+       hasNFIgeometry_spatial,
+       getNFIgeometry_spatial,
+       copyNFIgeometry_spatial,
+       asNFI_spatial_sf,
+       gadm_spatial,
+       filter_gadm_province_spatial,
+       getNFIboundary_spatial,
+       hasNFIboundary_spatial,
+       copyNFIboundary_spatial,
+       copyNFIspatial_sidecars)
 S3method(trees_per_ha, concentric_design)
 S3method(trees_per_ha, inventory_design)
 S3method(print, concentric_design)
@@ -42,7 +78,7 @@ S3method(update,dendroMetrics)
 S3method(update,external_dendroMetrics)
 S3method(update,inventoryMetrics)
 S3method(update, list)
-
-
-
-
+S3method(plot,readNFI_spatial)
+S3method(plot,nfiMetrics_spatial)
+S3method(plot,metrics2Vol_spatial)
+S3method(plot,inventoryMetrics_spatial)

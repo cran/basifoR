@@ -1,9 +1,4 @@
 readNFI <- structure(function
-### Read raw tables from the Spanish National Forest Inventory (SNFI)
-### and compatible inventory exports. The function accepts province
-### identifiers that are resolved to official SNFI download URLs, local
-### or remote \code{.zip} archives, and direct paths to decompressed
-### \code{.csv}, \code{.dbf}, \code{.mdb}, or \code{.accdb} files.
                        ##title<< Read raw SNFI tables from archives, URLs, or local files
                        ##description<< Import raw inventory tables from
                        ## the Spanish National Forest Inventory (SNFI)

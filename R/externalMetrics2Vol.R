@@ -2,9 +2,7 @@ externalMetrics2Vol <- structure(function
 ##title<< Compute tree-level volume outputs from external inventory data
 ##description<< Compute one or more tree-level volume outputs from external inventory data or from a precomputed external metrics table.
 (
-    x, ##<< Input data.frame or object inheriting from \code{"externalMetrics"}.
-### Standardized columns such as \code{d}, \code{h}, \code{dnm}, or
-### \code{v} must have named unit metadata in the \code{"units"} attribute of \code{x}.
+    x, ##<< Input data.frame or object inheriting from \code{"externalMetrics"}. Standardized columns such as \code{d}, \code{h}, \code{dnm}, or \code{v} must have named unit metadata in the \code{"units"} attribute of \code{x}.
     parametro = c("V"), ##<< Requested volume outputs or method names.
     parameter_table = NULL,
 ### Optional data.frame of coefficients or parameter rows used by the
@@ -27,15 +25,15 @@ externalMetrics2Vol <- structure(function
     metric_levels = NULL, ##<< Grouping or identifier columns kept during metric derivation.
     keep_cols = NULL, ##<< Legacy alias for \code{metric_keep_cols}.
     metric_keep_cols = NULL, ##<< Extra columns kept during metric derivation.
-    metric_colmap = list(
+    metric_colmap = list( ##<< Alias list for raw diameter and height columns used by \code{externalMetrics()}.
         d = c("d", "dbh", "diameter", "diameter_mm"),
         h = c("h", "height", "height_m")
-    ), ##<< Alias list for raw diameter and height columns used by \code{externalMetrics()}.
+    ),
     d_unit = NULL, ##<< Legacy alias for \code{metric_d_unit}.
     metric_d_unit = c("mm", "cm")[1], ##<< Unit of raw diameter columns used during metric derivation.
     h_unit = NULL, ##<< Legacy alias for \code{metric_h_unit}.
     metric_h_unit = c("m", "dm", "cm")[1], ##<< Unit of raw height columns used during metric derivation.
-    volume_colmap = list(
+    volume_colmap = list( ##<< Default alias list used to resolve standardized inputs and contextual columns such as species, region, and equation set.
         d = c("d"),
         h = c("h"),
         dnm = c("dnm", "d_nm", "D.n.m."),
@@ -44,8 +42,6 @@ externalMetrics2Vol <- structure(function
         region = c("region", "pr"),
         equation_set = c("equation_set", "eqset", "tariff", "model_set")
     ),
-### Default alias list used to resolve already standardized inputs and
-### contextual matching columns such as species, region, and equation set.
     ... ##<< Additional arguments passed only to \code{externalMetrics()} when metric derivation is triggered.
 ) {
     ##details<< Required inputs are inferred from the selected methods in \code{method_registry}. When one or more standardized inputs are missing and \code{compute_metrics_if_needed = TRUE}, the function calls \code{externalMetrics()} to derive them, using \code{design}, \code{metric_colmap}, units, grouping columns, and retained columns from the corresponding arguments.
@@ -88,7 +84,13 @@ externalMetrics2Vol <- structure(function
     }
 
     dots <- list(...)
-    metric_extra <- dots[intersect(names(dots), c("domheight_fun"))]
+    metric_extra <- dots[intersect(
+        names(dots),
+        c(
+            "domheight_fun", "domdiameter_fun",
+            "domheight_method", "domheight_registry"
+        )
+    )]
 
     get_units_map <- function(x) {
         un <- attr(x, "units")
@@ -236,7 +238,7 @@ externalMetrics2Vol <- structure(function
         out <- character(0)
 
         for (inp in req) {
-            if (inp %in% c("d", "h", "dnm", "v", "n", "ba", "hd")) {
+            if (inp %in% c("d", "h", "dnm", "v", "n", "ba", "hd", "dd")) {
                 out <- c(out, inp)
                 next
             }
@@ -269,7 +271,8 @@ externalMetrics2Vol <- structure(function
         v = unique(c(colmap$v, "v")),
         n = "n",
         ba = "ba",
-        hd = c("Hd", "hd")
+        hd = c("Hd", "hd"),
+        dd = c("Dd", "dd")
     )
 
     resolve_standardized_col_exact <- function(dt, aliases) {
@@ -293,10 +296,10 @@ externalMetrics2Vol <- structure(function
         if (is.null(aliases))
             return(FALSE)
 
-        ## Use exact alias matching only here. This avoids false positives such as
-        ## matching the requested standardized metric "n" to source columns like
-        ## "CAMPAGNE" during the preflight check that decides whether metrics need
-        ## to be computed.
+        # Use exact alias matching only here. This avoids false positives such as
+        # matching the requested standardized metric "n" to source columns like
+        # "CAMPAGNE" during the preflight check that decides whether metrics need
+        # to be computed.
         col <- resolve_standardized_col_exact(dt, aliases)
         if (is.null(col))
             return(FALSE)
@@ -310,7 +313,7 @@ externalMetrics2Vol <- structure(function
 
         metrics_supported <- unique(intersect(
             c(required_inputs, tolower(metric_var %||% character(0))),
-            c("d", "h", "n", "ba", "hd")
+            c("d", "h", "n", "ba", "hd", "dd")
         ))
         if (!length(metrics_supported))
             return(x)
@@ -342,16 +345,19 @@ externalMetrics2Vol <- structure(function
             if ("h" %in% missing_supported) "h",
             if ("n" %in% missing_supported) "n",
             if ("ba" %in% missing_supported) "ba",
-            if ("hd" %in% missing_supported) "Hd"
+            if ("hd" %in% missing_supported) "Hd",
+            if ("dd" %in% missing_supported) "Dd"
         )
 
         var_needed <- unique(c(metric_var %||% character(0), auto_var_needed))
 
         if ("Hd" %in% var_needed)
             var_needed <- unique(c(var_needed, "d", "h", "n"))
+        if ("Dd" %in% var_needed)
+            var_needed <- unique(c(var_needed, "d", "n"))
 
         drop_cols <- tolower(c(
-            "d", "h", "ba", "n", "hd", "v", "vcc", "vsc", "iavc", "vle"
+            "d", "h", "ba", "n", "hd", "dd", "v", "vcc", "vsc", "iavc", "vle"
         ))
 
         existing_keep <- if (inherits(x, c("externalMetrics", "metrics2vol"))) {
@@ -762,6 +768,14 @@ externalMetrics2Vol <- structure(function
     design_meta <- attr(x_orig, "design_meta")
     if (!is.null(design_meta))
         attr(out, "design_meta") <- design_meta
+
+    dominant_height_meta <- attr(x_orig, "dominant_height_meta")
+    if (!is.null(dominant_height_meta))
+        attr(out, "dominant_height_meta") <- dominant_height_meta
+
+    dominant_diameter_meta <- attr(x_orig, "dominant_diameter_meta")
+    if (!is.null(dominant_diameter_meta))
+        attr(out, "dominant_diameter_meta") <- dominant_diameter_meta
 
     if (track_provenance) {
         attr(out, "volume_meta") <- list(

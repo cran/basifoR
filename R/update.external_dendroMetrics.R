@@ -1,27 +1,14 @@
 update.external_dendroMetrics <- function
 ##title<< Update a stored external_dendroMetrics call
-##description<< Rebuild the call stored in a previous \code{"external_dendroMetrics"} result, optionally replace named arguments, and either evaluate the updated call or return it unevaluated.
+##description<< Rebuild the call stored in a previous external_dendroMetrics result, optionally replace named arguments, and either evaluate the updated call or return it unevaluated.
 (
-    object, ##<< Object returned by \code{external_dendroMetrics()}.
+    object, ##<< Object returned by external_dendroMetrics().
     ..., ##<< Named arguments used to replace entries in the stored call.
-    evaluate = TRUE ##<< If \code{TRUE}, evaluate the updated call; otherwise return the call.
+    evaluate = TRUE ##<< If TRUE, evaluate the updated call; otherwise return the call.
 ) {
-    ##details<< The method checks that \code{object} inherits from \code{"external_dendroMetrics"} and that the original matched call is stored in \verb{attr(object, "call")}. It then replaces any named arguments supplied in \code{...} inside that stored call.
-    ##details<< Use \code{evaluate = FALSE} to inspect the reconstructed call before execution. This is useful when debugging filters, grouping variables, schemas, or volume-method options.
-    ##value<< A new \code{"external_dendroMetrics"} object when \code{evaluate = TRUE}; otherwise the updated call.
-
-    ##details<< The method checks that \code{object} inherits from
-    ## \code{"external_dendroMetrics"} and that it stores the original
-    ## matched call in \verb{attr(object, "call")}. It then replaces any
-    ## named arguments supplied in \code{...} inside that stored call.
-    ##
-    ## Use \code{evaluate = FALSE} to inspect the reconstructed call
-    ## before execution, which is useful when debugging filters,
-    ## grouping variables, schemas, or volume-method options.
-    ##
-    ## The method only changes arguments supplied explicitly in
-    ## \code{...}; all other arguments remain as stored in the original
-    ## call.
+    ##details<< The method checks that object inherits from "external_dendroMetrics" and that the original matched call is stored in attr(object, "call"). It then replaces any named arguments supplied in "..." inside that stored call.
+    ##details<< Use evaluate = FALSE to inspect the reconstructed call before execution. This is useful when debugging filters, grouping variables, schemas, or volume-method options. The method only changes arguments supplied explicitly in "..."; all other arguments remain as stored in the original call.
+    ##value<< A new external_dendroMetrics object when evaluate = TRUE; otherwise the updated call.
 
     if (!inherits(object, "external_dendroMetrics"))
         stop(

@@ -1,8 +1,4 @@
 new_volume_method <- structure(function
-### Creates a compact method specification for the external volume registry. A method definition tells 
-### \code{externalMetrics2Vol} which output to compute, where to find or resolve parameters, how to 
-### build the argument list for the equation, how to scale the raw result to cubic metres, and which 
-### fallback to return when a direct computation is not possible.
 ##title<< Define one external volume-computation method
 ##description<< Create a method specification for registry-based volume calculations in external inventory workflows.
 (
@@ -14,7 +10,7 @@ new_volume_method <- structure(function
     scale_to_m3 = 1, ##<< \code{numeric(1)}. Multiplicative factor used to convert the raw result to cubic metres.
     build_args = function(ctx, pars, resolved) list(), ##<< \code{function}. Builds the argument list passed to the equation function. It receives the current row context, the selected parameter row, and already resolved outputs.
     fallback = function(ctx, pars, resolved) null_or(resolved$preexisting_v_m3, NA_real_),
-    ##<< \code{function}. Returns a fallback value when the method cannot compute a raw result, for example because the function, parameters, or arguments are missing.
+    ### \code{function}. Returns a fallback value when the method cannot compute a raw result, for example because the function, parameters, or arguments are missing.
     match_by = character(0), ##<< \code{character}. Column names used to match candidate parameter rows against the current row context.
     get_pars = NULL, ##<< Optional \code{function}. Custom resolver that returns the parameter rows to use for the current tree or observation.
     pars = NULL, ##<< Optional embedded parameter table stored inside the method definition.

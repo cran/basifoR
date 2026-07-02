@@ -8,44 +8,47 @@ nfiMetrics <- structure(function#Tree-level metrics for Spanish NFI inputs
 ### result.
 (
     nfi,  ##<< \code{character(1)} or a \code{"readNFI"} object.
-          ##<< Supply either a path/URL that \code{\link{readNFI}} can
-          ##<< import or an already imported object returned by
-          ##<< \code{\link{readNFI}}. The input should contain the SNFI
-          ##<< diameter and height fields, usually aliases such as
-          ##<< \code{Dn} and \code{altura}.
-    var = c('d','h','ba','n','Hd'), ##<< \code{character}. Metrics to
-                                    ##<< compute. Supported values are
-                                    ##<< \code{'d'} (diameter in
-                                    ##<< \code{mm}), \code{'h'}
-                                    ##<< (height in \code{dm}),
-                                    ##<< \code{'ba'} (basal area per
-                                    ##<< tree in \code{m^2}),
-                                    ##<< \code{'n'} (trees per hectare),
-                                    ##<< and \code{'Hd'} (dominant
-                                    ##<< height in \code{dm}).
-                                    ##<< Request \code{'h'},
-                                    ##<< \code{'d'}, and \code{'n'}
-                                    ##<< together when you request
-                                    ##<< \code{'Hd'}.
+          ## Supply either a path/URL that \code{\link{readNFI}} can
+          ## import or an already imported object returned by
+          ## \code{\link{readNFI}}. The input should contain the SNFI
+          ## diameter and height fields, usually aliases such as
+          ## \code{Dn} and \code{altura}.
+    var = c('d','h','ba','n','Hd','Dd'), ##<< \code{character}. Metrics to
+                                    ## compute. Supported values are
+                                    ## \code{'d'} (diameter in
+                                    ## \code{mm}), \code{'h'}
+                                    ## (height in \code{m}),
+                                    ## \code{'ba'} (basal area per
+                                    ## tree in \code{m^2}),
+                                    ## \code{'n'} (trees per hectare),
+                                    ## \code{'Hd'} (dominant height in \code{m}),
+                                    ## and \code{'Dd'} (dominant diameter
+                                    ## in \code{mm}).
+                                    ## Request \code{'h'},
+                                    ## \code{'d'}, and \code{'n'}
+                                    ## together when you request
+                                    ## \code{'Hd'}.
     levels = c('esta','espe'), ##<< \code{character}. Column-name
-                               ##<< patterns used to keep grouping
-                               ##<< variables in the output. Matching
-                               ##<< ignores case and accepts partial
-                               ##<< matches. The default usually keeps
-                               ##<< plot and species identifiers when
-                               ##<< those fields are present.
+                               ## patterns used to keep grouping
+                               ## variables in the output. Matching
+                               ## ignores case and accepts partial
+                               ## matches. The default usually keeps
+                               ## plot and species identifiers when
+                               ## those fields are present.
     design = snfi_design(), ##<< Sampling design used to derive
-                            ##<< \code{'n'} and any dependent
-                            ##<< \code{'Hd'} calculation. Supply the
-                            ##<< default \code{\link{snfi_design}()},
-                            ##<< another \code{"concentric_design"},
-                            ##<< or any \code{"inventory_design"}
-                            ##<< supported by \code{\link{trees_per_ha}}.
-                            ##<< The returned object stores a summary of
-                            ##<< the design in \code{attr(x,
-                            ##<< "design_meta")} when relevant.
+                            ## \code{'n'} and any dependent
+                            ## \code{'Hd'} calculation. Supply the
+                            ## default \code{\link{snfi_design}()},
+                            ## another \code{"concentric_design"},
+                            ## or any \code{"inventory_design"}
+                            ## supported by \code{\link{trees_per_ha}}.
+                            ## The returned object stores a summary of
+                            ## the design in \code{attr(x,
+                            ## "design_meta")} when relevant.
+    domheight_method = "Hd", ##<< \code{character(1)}. Dominant-height method code resolved through \code{domheight_registry} when \code{'Hd'} is requested.
+    domheight_registry = dominant_height_method_registry(), ##<< Named registry created with \code{\link{dominant_height_method_registry}}.
     ... ##<< Additional arguments passed to \code{\link{readNFI}} when
-        ##<< \code{nfi} is not already a \code{"readNFI"} object.
+        ## \code{nfi} is not already a \code{"readNFI"} object.
 
 ) {
     ns_fun <- function(name) {
@@ -78,8 +81,11 @@ nfiMetrics <- structure(function#Tree-level metrics for Spanish NFI inputs
     ##details<< If you request \code{'Hd'}, the function computes
     ##details<< dominant height within the groups selected by
     ##details<< \code{levels} by using \code{'h'}, \code{'d'}, and
-    ##details<< \code{'n'}.
-    ##seealso<< dendroMetrics, dbhMetric, readNFI, snfi_design, trees_per_ha
+    ##details<< \code{'n'}. The active method is resolved through
+    ##details<< \code{domheight_registry}; inspect
+    ##details<< \code{dominant_height_method_registry()$Hd} to see the
+    ##details<< equation, selection rule, threshold, variables, and fallback.
+    ##seealso<< dendroMetrics, dbhMetric, readNFI, snfi_design, trees_per_ha, dominant_height_method_registry
 
     ## Return early on NULL input to preserve the previous behaviour.
     nfi. <- nfi
@@ -147,8 +153,8 @@ nfiMetrics <- structure(function#Tree-level metrics for Spanish NFI inputs
         cols[order(cols)]
     }
 
-    ## Dominant height is computed later from h, d, and n.
-    var. <- var[!var %in% 'Hd']
+    ## Dominant height and diameter are computed later from their base metrics.
+    var. <- var[!var %in% c('Hd', 'Dd')]
 
     diam_cols <- character(0)
     ht_cols <- character(0)
@@ -195,7 +201,7 @@ nfiMetrics <- structure(function#Tree-level metrics for Spanish NFI inputs
     diam_mm <- NULL
     diam_cm <- NULL
     trees_ha <- NULL
-    ht_dm <- NULL
+    ht_m <- NULL
 
     ## Diameter-based metrics: treat zeros as missing values and average
     ## repeated diameter columns row-wise when several measurements exist.
@@ -232,7 +238,6 @@ nfiMetrics <- structure(function#Tree-level metrics for Spanish NFI inputs
             ht_m[nn == 0L] <- NA_real_
         }
 
-        ht_dm <- conv_unit(ht_m, from = 'm', to = 'dm')
     }
 
     ## Dispatch each metric, using the fast precomputed vectors when the
@@ -264,7 +269,7 @@ nfiMetrics <- structure(function#Tree-level metrics for Spanish NFI inputs
 
         if(var %in% 'h') {
             if(length(ht_cols) > 0L)
-                return(ht_dm)
+                return(ht_m)
             cols <- resolve_measure_cols(dbh, c('altura', 'Ht'))
             return(apply(dbh[, cols, drop = FALSE], 1,
                          function(x) dbhMetric(x, var, design = design)))
@@ -317,23 +322,69 @@ nfiMetrics <- structure(function#Tree-level metrics for Spanish NFI inputs
                           check.names = FALSE)
     }
 
-    ## Compute dominant height within each grouping level.
-    if('Hd' %in% var) {
-        needed <- c('h', 'd', 'n')
-        nd <- paste(needed, collapse = '?,')
-        if(!all(needed %in% var))
-            stop(paste0('Hd: missing variables: var = c(', nd, '?, ...)'))
-        spl <- split(dmt, dmt[, nms], drop = TRUE)
-        dmhe <- Map(function(y)
-            cbind(y, Hd = tryCatch({
-                domheight_fun <- ns_fun("domheight")
-                if (is.null(domheight_fun))
-                    stop("Could not resolve internal helper 'domheight'.", call. = FALSE)
-                domheight_fun(y$'h', y$'d', y$'n')
-            },
-                                   error = function(e) NA)), spl)
-        dmt <- do.call('rbind', dmhe)
+    ## Compute dominant height and dominant diameter within each grouping level.
+    dominant_height_meta <- NULL
+    dominant_diameter_meta <- NULL
+    dominant_requested <- intersect(c("Hd", "Dd"), var)
+
+    if (length(dominant_requested)) {
+        if ("Hd" %in% dominant_requested &&
+            !all(c("h", "d", "n") %in% var)) {
+            stop("Hd requires var to include 'h', 'd', and 'n'.",
+                 call. = FALSE)
+        }
+
+        if ("Dd" %in% dominant_requested &&
+            !all(c("d", "n") %in% var)) {
+            stop("Dd requires var to include 'd' and 'n'.",
+                 call. = FALSE)
+        }
+
+        method_info <- resolve_dominant_height_method(
+            method = domheight_method,
+            registry = domheight_registry
+        )
+        domheight_fun <- method_info$fun
+        domdiameter_fun <- method_info$diameter_fun
+
+        if ("Dd" %in% dominant_requested && !is.function(domdiameter_fun)) {
+            stop(
+                "Dominant method '", method_info$method,
+                "' does not define a paired dominant-diameter function.",
+                call. = FALSE
+            )
+        }
+
+        spl <- split(dmt, dmt[, nms, drop = FALSE], drop = TRUE)
+        dmhe <- lapply(spl, function(y) {
+            if ("Hd" %in% dominant_requested) {
+                y$Hd <- tryCatch(
+                    domheight_fun(h = y$h, d = y$d, n = y$n),
+                    error = function(e) NA_real_
+                )
+            }
+
+            if ("Dd" %in% dominant_requested) {
+                y$Dd <- tryCatch(
+                    domdiameter_fun(d = y$d, n = y$n),
+                    error = function(e) NA_real_
+                )
+            }
+            y
+        })
+        dmt <- do.call("rbind", dmhe)
         rownames(dmt) <- NULL
+
+        if ("Hd" %in% dominant_requested)
+            dominant_height_meta <- method_info$meta
+
+        if ("Dd" %in% dominant_requested) {
+            dominant_diameter_meta <- method_info$meta
+            dominant_diameter_meta$output <- "Dd"
+            dominant_diameter_meta$unit <- method_info$definition$diameter_unit
+            dominant_diameter_meta$equation <- method_info$definition$diameter_equation
+            dominant_diameter_meta$fun_name <- method_info$definition$diameter_fun_name
+        }
     }
 
     ## Restore attributes, attach unit metadata, and set the output class.
@@ -341,15 +392,21 @@ nfiMetrics <- structure(function#Tree-level metrics for Spanish NFI inputs
 
     metric_units <- c(
         d  = "mm",
-        h  = "dm",
+        h  = "m",
         ba = "m2 tree-1",
         n  = "ha-1",
-        Hd = "dm"
+        Hd = "m",
+        Dd = "mm"
     )
 
     attr(dmt, "units") <- metric_units[intersect(names(dmt), names(metric_units))]
 
-    if (any(var %in% c("n", "Hd"))) {
+    if (!is.null(dominant_height_meta))
+        attr(dmt, "dominant_height_meta") <- dominant_height_meta
+    if (!is.null(dominant_diameter_meta))
+        attr(dmt, "dominant_diameter_meta") <- dominant_diameter_meta
+
+    if (any(var %in% c("n", "Hd", "Dd"))) {
         design_meta <- list(
             name = if (!is.null(design$name)) design$name else NA_character_,
             class = class(design),
@@ -374,7 +431,9 @@ nfiMetrics <- structure(function#Tree-level metrics for Spanish NFI inputs
 ### stores \code{attr(x, 'nfi.nr')} when available. Inspect
 ### \code{attr(x, 'units')} for the returned metric units and
 ### \code{attr(x, 'design_meta')} for the sampling design summary
-### attached when \code{'n'} or \code{'Hd'} is requested.
+### attached when \code{'n'}, \code{'Hd'}, or \code{'Dd'} is requested. When \code{'Hd'}
+### is requested, inspect \code{attr(x, 'dominant_height_meta')} to see the
+### method code, equation, selection rule, threshold, and fallback.
 }, ex = function(){
 ## Minimal reproducible example with a small object that mimics
 ## readNFI() output

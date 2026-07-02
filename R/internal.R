@@ -187,6 +187,21 @@ metrics2Vol_legacy <- structure(function#Tree volumes in NFI data
         names(var..)[var..%in%attr_un] <- names(attr_un)
     nfi. <- nfi
 
+    ## Legacy equations are evaluated with height in dm, but current basifoR
+    ## tree metrics report h in m.  If older inputs arrive without unit
+    ## metadata, assume the current package convention and make the conversion
+    ## explicit before applying the legacy formulas.
+    units_in <- attr(nfi, "units")
+    if (is.null(units_in))
+        units_in <- c(d = "mm", h = "m")
+    if (is.null(names(units_in)))
+        stop("Legacy metrics2Vol requires named unit metadata.", call. = FALSE)
+    if ("d" %in% names(nfi) && !"d" %in% names(units_in))
+        units_in["d"] <- "mm"
+    if ("h" %in% names(nfi) && !"h" %in% names(units_in))
+        units_in["h"] <- "m"
+    attr(nfi, "units") <- units_in
+
     nfi <- conv_units(nfi, var = c('d','h'), un = c('mm','dm'))
     
     mds <- c('1'  = 'v ~ par1 + par2 * (d^2) * h',
@@ -262,6 +277,10 @@ metrics2Vol_legacy <- structure(function#Tree volumes in NFI data
 u <- attr(nfi, "units")
 if (is.null(u))
     u <- c(d = "mm", h = "dm")
+if ("d" %in% names(mmd) && !"d" %in% names(u))
+    u["d"] <- "mm"
+if ("h" %in% names(mmd) && !"h" %in% names(u))
+    u["h"] <- "dm"
 u["v"] <- "dm3"
 attr(mmd, "units") <- u
 
@@ -357,26 +376,6 @@ find_code__ <- function(input_value, is.ifn4, df) {
     as.character(out)
 }
 
-## find_code__ <- function(input_value, is.ifn4, df) {
-##   result <- df$codigo[
-##     grepl(input_value, ignore.case = TRUE, df$codigo) | 
-##     grepl(input_value, ignore.case = TRUE, df$provincia) | 
-##     grepl(input_value, ignore.case = TRUE, df$codigo2) |
-##     grepl(input_value, ignore.case = TRUE, df$provincia_0) |
-##     grepl(input_value, ignore.case = TRUE, df$provincia_1)
-##     ][1L]
-  
-##   if(is.ifn4){
-##       result <- df$provincia_1[
-##                        grepl(paste0('^',result,'$'), df$codigo,
-##                              ignore.case = TRUE)]}
-##   if(length(result) == 0)
-##       result <- NA
-##   return(result)
-## }
-
-
-
 get_ifn_nr <- function(x) {
   nm <- basename(x)
   
@@ -393,305 +392,6 @@ get_ifn_nr <- function(x) {
   
   NA_integer_
 }
-## dendroMetrics_ <- structure(function
-## ### Summarize dendrometrics
-## ### This function can summarize dendrometric data of the Spanish
-## ### National Forest Inventory (SNF). It can also control most other
-## ### functions of the package. Dendrometric variables in the outputs are
-## ### transformed into stand units, see the Details section.
-##                            ##details<< Dendrometric variables are
-##                            ## summarized according to the levels of
-##                            ## the argument \code{summ.vr}. The summary
-##                            ## outputs include the categorical columns
-##                            ## formulated in \code{summ.vr} and the
-##                            ## variables defined using
-##                            ## arguments/defaults in
-##                            ## \code{\link{nfiMetrics}}. These
-##                            ## variables include the tree basal area
-##                            ## \code{ba} (\code{'m2 ha-1'}), the
-##                            ## average diameter at breast height
-##                            ## \code{d} (\code{'cm'}), the quadratic
-##                            ## mean diameter \code{dg} (\code{'cm'}),
-##                            ## the average tree height \code{h}
-##                            ## (\code{'m'}), the number of trees by
-##                            ## hectare \code{n} ('dimensionless'), and
-##                            ## the over bark volume \code{v} (\code{'m3
-##                            ## ha-1'}). Subsets of the output summary
-##                            ## are extracted using logical expressions
-##                            ## in argument \code{'cut.dt'}, see syntax
-##                            ## in \code{\link{Logic}}.
-## (
-##     nfi, ##<< \code{character}, \code{list}, or \code{data.frame}.
-##           ## URL/path to a compressed SNF file (.zip) having data of
-##           ## either .dbf or .mdb file extensions; or data frame such
-##           ## as that produced by \code{\link{nfiMetrics}}; or data
-##           ## frame such as that produced by \code{\link{readNFI}}.
-##           ## Several inputs can be supplied as a list or vector and
-##           ## processed in parallel.
-##     summ.vr = "Estadillo", ##<< \code{character} or \code{NULL}. Name
-##                            ## of a categorical variable in the SNF
-##                            ## data used to summarize the outputs. If
-##                            ## \code{NULL} then output from
-##                            ## \code{\link{metrics2Vol}} is returned.
-##                            ## Default \code{"Estadillo"} processes
-##                            ## sample plots.
-##     cut.dt = "d == d", ##<< \code{character}. Logical condition used
-##                        ## to subset the output. Default \code{"d == d"}
-##                        ## avoids subsetting.
-##     report = FALSE, ##<< \code{logical}. Write report files in
-##                     ## \code{report.dir}. When several inputs are
-##                     ## supplied, one file per input is written.
-##     report.dir = getwd(), ##<< \code{character}. Directory where
-##                           ## report files are written.
-##     report.prefix = "report", ##<< \code{character}. Prefix used in
-##                               ## report filenames.
-##     mc.cores = getOption("mc.cores", 1L), ##<< \code{integer}. Number
-##                     ## of worker processes used when several inputs
-##                     ## are supplied in \code{nfi}.
-##     .parallel = TRUE, ##<< \code{logical}. If \code{TRUE} and several
-##                       ## inputs are supplied in \code{nfi}, process
-##                       ## them in parallel.
-##     ...
-## ) {
-
-##     make_report_file <- function(id, dir, prefix) {
-##         if (!dir.exists(dir))
-##             dir.create(dir, recursive = TRUE, showWarnings = FALSE)
-##         file.path(dir, paste0(prefix, "_", id, ".csv"))
-##     }
-
-##     dendro_one <- function(nfi, summ.vr, cut.dt, report, report.file, ...) {
-
-##         nfi. <- nfi
-
-##         if (is.null(nfi.))
-##             return(nfi)
-
-##         if (!inherits(nfi., "metrics2vol"))
-##             nfi <- metrics2Vol(nfi, ...)
-
-##         frm. <- attr(nfi, "units")
-
-##         if (is.null(summ.vr)) {
-##             nfi <- subset(nfi, eval(parse(text = cut.dt)))
-##             attributes(nfi) <- c(attributes(nfi), list(units = frm.))
-
-##             if (report)
-##                 write.csv(nfi, file = report.file, row.names = FALSE)
-
-##             return(nfi)
-##         }
-
-##         summ.vr <- flev(nfi, summ.vr)
-##         var <- getOption("units1")[getOption("units1") %in% names(nfi)]
-##         frm. <- names(attr(nfi, "units"))
-##         to. <- names(var)
-##         var. <- var[var != "n"]
-
-##         nfi <- conv_units(nfi, var = var, un = to.)
-##         msp <- split(nfi, nfi[summ.vr])
-##         msp <- Filter("nrow", msp)
-
-##         fsum <- function(dt) {
-##             dt[, var.] <- dt[, var.] * dt[, "n"]
-
-##             summ <- apply(dt[, var, drop = FALSE], 2, sum, na.rm = TRUE)
-
-##             keep_avg <- intersect(c("d", "h", "Hd"), names(summ))
-##             if (length(keep_avg))
-##                 summ[keep_avg] <- summ[keep_avg] / summ["n"]
-
-##             if (all(c("ba", "n") %in% names(summ)))
-##                 summ["dg"] <- sqrt((4E4 * summ["ba"] / summ["n"]) / pi)
-
-##             summ <- summ[order(names(summ))]
-##             summ <- sapply(summ, function(x) round(x, 3))
-##             summ <- t(as.matrix(summ))
-
-##             fcs. <- names(dt)[!names(dt) %in% var]
-##             fcs <- dt[1, fcs., drop = FALSE]
-
-##             cbind(fcs, summ)
-##         }
-
-##         resm <- lapply(msp, fsum)
-##         resm <- Reduce("rbind", resm)
-##         resm <- data.frame(resm)
-
-##         resm <- subset(resm, eval(parse(text = cut.dt)))
-##         rownames(resm) <- NULL
-
-##         if (report)
-##             write.csv(resm, file = report.file, row.names = FALSE)
-
-##         dgcm <- "dg"
-##         names(dgcm) <- "cm"
-##         attr. <- c(attr(nfi, "units"), dgcm)
-##         attributes(resm) <- c(attributes(resm), list(units = attr.))
-
-##         resm
-##     }
-
-##     is_many <- is.list(nfi) || (length(nfi) > 1L && !is.data.frame(nfi))
-
-##     if (!is_many) {
-##         report.file <- make_report_file(1L, report.dir, report.prefix)
-##         return(dendro_one(
-##             nfi = nfi,
-##             summ.vr = summ.vr,
-##             cut.dt = cut.dt,
-##             report = report,
-##             report.file = report.file,
-##             ...
-##         ))
-##     }
-
-##     nfi_list <- if (is.list(nfi)) nfi else as.list(nfi)
-##     ids <- seq_along(nfi_list)
-##     report.files <- vapply(
-##         ids,
-##         function(i) make_report_file(i, report.dir, report.prefix),
-##         character(1)
-##     )
-
-##     mc.cores <- as.integer(mc.cores)
-##     if (is.na(mc.cores) || mc.cores < 1L)
-##         mc.cores <- 1L
-
-##     if (!.parallel || mc.cores == 1L) {
-
-##         res_list <- Map(
-##             function(x, rf) {
-##                 dendro_one(
-##                     nfi = x,
-##                     summ.vr = summ.vr,
-##                     cut.dt = cut.dt,
-##                     report = report,
-##                     report.file = rf,
-##                     ...
-##                 )
-##             },
-##             x = nfi_list,
-##             rf = report.files
-##         )
-
-##     } else if (.Platform$OS.type == "windows") {
-
-##         cl <- parallel::makeCluster(mc.cores)
-##         on.exit(parallel::stopCluster(cl), add = TRUE)
-
-##         parallel::clusterExport(
-##             cl = cl,
-##             varlist = c(
-##                 "dendro_one",
-##                 "summ.vr",
-##                 "cut.dt",
-##                 "report",
-##                 "nfi_list",
-##                 "report.files"
-##             ),
-##             envir = environment()
-##         )
-
-##         parallel::clusterEvalQ(cl, {
-##             if ("basifoR" %in% loadedNamespaces())
-##                 NULL
-##             else
-##                 library(basifoR)
-##         })
-
-##         res_list <- parallel::parLapply(
-##             cl = cl,
-##             X = ids,
-##             fun = function(i, ...) {
-##                 dendro_one(
-##                     nfi = nfi_list[[i]],
-##                     summ.vr = summ.vr,
-##                     cut.dt = cut.dt,
-##                     report = report,
-##                     report.file = report.files[[i]],
-##                     ...
-##                 )
-##             },
-##             ...
-##         )
-
-##     } else {
-
-##         res_list <- parallel::mclapply(
-##             X = ids,
-##             FUN = function(i, ...) {
-##                 dendro_one(
-##                     nfi = nfi_list[[i]],
-##                     summ.vr = summ.vr,
-##                     cut.dt = cut.dt,
-##                     report = report,
-##                     report.file = report.files[[i]],
-##                     ...
-##                 )
-##             },
-##             ...,
-##             mc.cores = mc.cores
-##         )
-##     }
-
-##     res_list <- Filter(Negate(is.null), res_list)
-
-##     if (!length(res_list))
-##         return(NULL)
-
-##     res_list <- Map(function(x, id) {
-##         if (!is.null(x))
-##             x$source_nfi <- id
-##         x
-##     }, res_list, ids)
-
-##     out <- Reduce(function(a, b) {
-##         if (is.null(a)) return(b)
-##         if (is.null(b)) return(a)
-##         rbind(a, b)
-##     }, res_list)
-
-##     out <- data.frame(out)
-##     rownames(out) <- NULL
-
-##     if (!is.null(attr(res_list[[1]], "units")))
-##         attr(out, "units") <- attr(res_list[[1]], "units")
-
-##     out
-
-## ### \code{data.frame}. Depending on \code{summ.vr = NULL}, an output
-## ### from \code{\link{metrics2Vol}}, or a summary of the variables, see
-## ### Details section.
-## }, ex = function() {
-
-## ## Single input, one report file:
-## ifn4p45 <- system.file("Ifn4_Toledo.zip", package = "basifoR")
-
-## res1 <- dendroMetrics(
-##     nfi = ifn4p45,
-##     report = TRUE,
-##     report.dir = tempdir(),
-##     report.prefix = "report"
-## )
-
-## ## Several inputs, one report per input:
-## z1 <- system.file("Ifn4_Toledo.zip", package = "basifoR")
-## z2 <- system.file("Ifn4_Toledo.zip", package = "basifoR")
-
-## res2 <- dendroMetrics(
-##     nfi = list(z1, z2),
-##     cut.dt = "h > 8",
-##     report = TRUE,
-##     report.dir = tempdir(),
-##     report.prefix = "report",
-##     mc.cores = 2
-## )
-
-## list.files(tempdir(), pattern = "^report_.*\\.csv$")
-
-## })
-
 
 ## Testing functions in basifoR
 nfi4 <- function(prov, complain = TRUE){
@@ -723,49 +423,6 @@ if(length(parsed) == 0){
 }
 return(parsed)}
 
-## # Define the function with wildcard support
-## find_code <- function(df, input_value) {
-##     if (is.numeric(input_value)) {  # Check if input is numeric
-##     result <- df$provincia_1[grepl(paste0('^',input_value,'$'), df$codigo,ignore.case = TRUE)]
-##   }else{
-##   # Use grepl for partial matching (case-insensitive search)
-##   result <- df$codigo[
-##     grepl(input_value, df$provincia, ignore.case = FALSE) | 
-##     grepl(input_value, df$codigo2,
-##           ## fixed = TRUE,ignore.case = FALSE) | 
-##           ignore.case = FALSE) |
-##     grepl(input_value, df$provincia_0, ignore.case = FALSE) |
-##     grepl(input_value, df$provincia_1, ignore.case = FALSE)
-##     ][1L]
-##       result <- df$provincia_1[grepl(paste0('^',result,'$'), df$codigo,ignore.case = TRUE)]
-##   }
-##   # Return the result
-##   return(result)
-## }
-
-## find_code_ <- function(input_value, is.ifn4 = TRUE, df) {
-##   result <- df$codigo[
-##     grepl(input_value, df$codigo) | 
-##     grepl(input_value, df$provincia) | 
-##     grepl(input_value, df$codigo2) |
-##     grepl(input_value, df$provincia_0) |
-##     grepl(input_value, df$provincia_1)
-##     ][1L]
-##   if(is.ifn4){
-##       result <- df$provincia_1[
-##                        grepl(paste0('^',result,'$'), df$codigo,
-##                              ignore.case = TRUE)]}
-##   if(length(result) == 0)
-##       result <- NA
-##       if(is.na(result)){
-##           warning(paste0("Spanish province '", input_value, "' not found!\n"),
-##                   call. = FALSE)
-##         return(invisible(NULL))}
-##   ## }
-##   # Return the result
-##   return(result)
-## }
-
 
 find_code_ <- function(input_value, is.ifn4 = TRUE, df, complain = TRUE) {
   result <- df$codigo[
@@ -790,52 +447,6 @@ find_code_ <- function(input_value, is.ifn4 = TRUE, df, complain = TRUE) {
   return(result)
 }
 
-## # Define the function
-## find_ifn4 <- function(strings) {
-##   # Regular expression
-##  # Matches 'ifn4' optionally followed by '_', '-', or 'p'
-##     pattern <- "[iI]fn4[_\\-p]?"
-##  # Exclude strings containing 'tables' or 'Sig'
-##   exclude <- "[tT]ablas|[sS]ig"
-##   # Filter strings
-##   matches <- grep(pattern, strings, value = TRUE) # Find strings matching 'ifn4'
-##   result <- matches[!grepl(exclude, matches)]    # Exclude unwanted patterns
-
-##   return(result)
-## }
-
-
-## parsedURL <- function(x, path.='path41', dt = procods){
-##     parsedURL <- Map(function(x)
-##         fparsed(x, path.= path., dt = dt),x)
-##     names(parsedURL) <- x
-## return(parsedURL)}
-
-
-## fparsed <- function(code., path. = 'path41', dt){
-## dt <- read.csv('procods_Cristobal.csv')
-##     u <- miteco_urls_from_paths(path.)
-##     prov <- find_code(dt, code.)
-## ## all_links. <- inspect_links(u, prov, ignore.case = TRUE) #%>% print()
-##     all_links. <- unlist(Map(function(x)
-##         inspect_links(x, prov, ignore.case = TRUE), u))
-## parsed <- mapply(function(x)
-##     httr::modify_url(getOption('server'), path = x),
-##     all_links., USE.NAMES = FALSE)
-##     if(length(parsed) == 0)
-##         parsed = NULL
-## return(parsed)
-## }
-
-## accentless <- function( s ) {
-##   chartr(
-##     "áéóūáéíóúÁÉÍÓÚýÝàèìòùÀÈÌÒÙâêîôûÂÊÎÔÛãõÃÕñÑäëïöüÄËÏÖÜÿçÇ",
-##     "aeouaeiouAEIOUyYaeiouAEIOUaeiouAEIOUaoAOnNaeiouAEIOUycC",
-##     s );
-## }
-
-##-----------------------------------------------------------------
-
 check_extension_in_zip <- function(url, extension){
   temp_file <- tempfile(fileext=".zip")
   suppressWarnings(
@@ -853,20 +464,6 @@ check_extension_in_zip <- function(url, extension){
     })
   )
 }
-
-## check_extension_in_zip <- function(url, extension){
-##   temp_file <- tempfile(fileext=".zip")
-##   tryCatch({
-##     curl_download(url, temp_file)
-##     zip_contents <- unzip(temp_file, list=TRUE)$Name
-##     has_extension <- any(grepl(paste0("\\", extension, "$"), zip_contents, ignore.case=TRUE))
-##     unlink(temp_file)
-##     return(has_extension)
-##   }, error=function(e){
-##     message("An error occurred: ", e$message)
-##     return(FALSE)
-##   })
-## }
 
 #----------------------------------------------------------------
 ## Internal utility functions used by basifoR
@@ -1025,42 +622,6 @@ conv_units <- function(nfi, var = c("d", "h"), un = c("cm", "m")) {
     return(nfi)
 }
 
-## conv_units <- function(nfi, var = c("d", "h"), un = c("cm", "m")) {
-##     units. <- getOption("units")
-##     if (!is.null(attr(nfi, "units")))
-##         units. <- attr(nfi, "units")
-
-##     cols <- names(units.)[names(units.) %in% names(nfi)]
-##     units_ini <- units_out <- unname(units.[cols])
-
-##     pos. <- match(var, cols)
-##     ok <- !is.na(pos.)
-##     units_out[pos.[ok]] <- un[ok]
-
-##     f_conv_unit <- function(x, y, z) {
-##         if (y == "" || z == "") {
-##             return(x)
-##         } else {
-##             conv_unit(x, y, z)
-##         }
-##     }
-
-##     nfi[, cols] <- data.frame(
-##         mapply(function(x, y, z) f_conv_unit(x, y, z),
-##                nfi[, cols, drop = FALSE],
-##                units_ini,
-##                units_out,
-##                SIMPLIFY = FALSE),
-##         check.names = FALSE
-##     )
-
-##     un_attr <- units_out
-##     names(un_attr) <- cols
-##     attributes(nfi) <- c(attributes(nfi), list(units = un_attr))
-##     return(nfi)
-## }
-
-
 
 convert_factors_to_numeric <- function(df) {
 # Function to convert factor columns to numeric while preserving
@@ -1094,8 +655,6 @@ domheight<-function(h, d, n) {
 file_exten <- function(texts)
     sapply(texts, function(x) sub(".*\\.(.*)", "\\1", x),
            USE.NAMES = FALSE)
-
-
 
 
 find_provincia_or_codigo <- function(input) { #
@@ -1264,35 +823,12 @@ if(length(parsed.) == 0){
 }
 return(parsed.)}
 
-## nfi4 <- function(prov, complain = TRUE){
-## ## Function to download ifn4 data using a province code
-##     if(is.null(prov))
-##         return(invisible(NULL))
-##     ## u <- 'https://www.mitueco.gob.es/es/biodiversidad/temas/inventarios-nacionales/inventario-forestal-nacional/cuarto_inventario.html'
-## u <- miteco_urls_from_paths('path41')
-## all_links. <- inspect_links(u,'tablas|sig', ignore.case = TRUE) #%>% print()
-## all_links <- inspect_links(u, "fn4.*\\.zip") #%>% print()
-## all_links <- all_links[!all_links%in%all_links.]
-## parsed <- mapply(function(x)httr::modify_url(getOption('server'), path = x), all_links, USE.NAMES = FALSE)
-## prov. <- prov
-## if(!is.character(prov))
-## prov <- find_provincia_or_codigo(prov)
-## parsed. <- parsed[grepl(prov, parsed, ignore.case = TRUE)]
-##     if(length(parsed.) == 0){
-##         if(complain)
-##     cat(paste0("Warning: Data for codigo '", prov., "' was not found!\n"))
-##     return(invisible(NULL))
-## }
-## ## to solve some wrong urls addind ifn/ifn4    
-## parsed. <- insert_ifn_ifn4(parsed.)
-## return(parsed.)}
-
 units. <- c(
     d = 'mm',
-    h = 'dm',
+    h = 'm',
     ba = 'm2 tree-1',
     n = 'ha-1',
-    Hd = 'dm',
+    Hd = 'm',
     v = 'm3 tree-1'
 )
 

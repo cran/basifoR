@@ -18,7 +18,12 @@ but users should migrate to \code{\link{readNFI}}.
 A deprecation warning is emitted on each call to make that transition explicit.}
 \value{The same return value as \verb{readNFI}. Depending on the input and selected files, this is typically a data frame or a named list of data frames containing imported SNFI tables.}
 
-\author{Wilson Lara <wilarhen@gmail.com> [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>), Cristobal Ordonez <angelcristobal.ordonez@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-5354-3760>), Aitor Vázquez-Veloso <aitor.vazquez.veloso@uva.es> [aut] (ORCID: <https://orcid.org/0000-0003-0227-506X>), Felipe Bravo <felipe.bravo@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
+\author{Wilson Lara [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>),
+Cristobal Ordonez [aut] (ORCID:
+<https://orcid.org/0000-0001-5354-3760>),
+Aitor Vázquez-Veloso [aut] (ORCID:
+<https://orcid.org/0000-0003-0227-506X>),
+Felipe Bravo [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
 
 
 

@@ -11,20 +11,20 @@
 # VCC: Volumen maderable con corteza, en dm3
 
 get_snfi_vcc <- function # SNFI merchantable volume over bark
-### Compute SNFI VCC from tree diameter, height, and one coefficient row.
-(dbh_mm, ##<< Tree diameter at breast height in millimetres.
- h_t, ##<< Tree height in metres.
- pars ##<< One-row \code{data.frame} of SNFI coefficients. The function
-      ##<< assumes exactly one row with a \code{Modelo} field and the
-      ##<< coefficients required by that model.
+# Compute SNFI VCC from tree diameter, height, and one coefficient row.
+(dbh_mm, # Tree diameter at breast height in millimetres.
+ h_t, # Tree height in metres.
+ pars # One-row \code{data.frame} of SNFI coefficients. The function
+      ## assumes exactly one row with a \code{Modelo} field and the
+      ## coefficients required by that model.
 ) {
-  ##details<<
-  ##details<< This function evaluates the SNFI equation for merchantable
-  ##details<< volume over bark (VCC) and returns the result in dm3.
-  ##details<< It currently supports models 1 and 11 from the SNFI
-  ##details<< coefficient table.
-  ##value<< Numeric VCC in dm3. Returns \code{NA_real_} when \code{pars}
-  ##value<< is empty or when the model is not recognised.
+  #
+  # This function evaluates the SNFI equation for merchantable
+  # volume over bark (VCC) and returns the result in dm3.
+  # It currently supports models 1 and 11 from the SNFI
+  # coefficient table.
+  # Numeric VCC in dm3. Returns \code{NA_real_} when \code{pars}
+  # is empty or when the model is not recognised.
 
   # check if pars available
   if(nrow(pars) == 0){
@@ -54,18 +54,18 @@ get_snfi_vcc <- function # SNFI merchantable volume over bark
 # VSC: Volumen maderable sin corteza, en dm3
 
 get_snfi_vsc <- function # SNFI merchantable volume under bark
-### Compute SNFI VSC from VCC and one coefficient row.
-(vcc, ##<< Merchantable volume over bark in dm3.
- pars ##<< One-row \code{data.frame} of SNFI coefficients. The function
-      ##<< assumes exactly one row with a \code{Modelo} field and the
-      ##<< coefficients required by that model.
+# Compute SNFI VSC from VCC and one coefficient row.
+(vcc, # Merchantable volume over bark in dm3.
+ pars # One-row \code{data.frame} of SNFI coefficients. The function
+      ## assumes exactly one row with a \code{Modelo} field and the
+      ## coefficients required by that model.
 ) {
-  ##details<<
-  ##details<< This function evaluates the SNFI equation for merchantable
-  ##details<< volume under bark (VSC) and returns the result in dm3.
-  ##details<< It currently supports model 7.
-  ##value<< Numeric VSC in dm3. Returns \code{NA_real_} when \code{pars}
-  ##value<< is empty or when the model is not recognised.
+  #
+  # This function evaluates the SNFI equation for merchantable
+  # volume under bark (VSC) and returns the result in dm3.
+  # It currently supports model 7.
+  # Numeric VSC in dm3. Returns \code{NA_real_} when \code{pars}
+  # is empty or when the model is not recognised.
 
   # check if pars available
   if(nrow(pars) == 0){
@@ -90,24 +90,24 @@ get_snfi_vsc <- function # SNFI merchantable volume under bark
 # IAVC: Incremento anual de volumen con corteza, en dm3
 
 get_snfi_iavc <- function # SNFI annual increment of volume over bark
-### Compute SNFI IAVC using the variables required by the selected model.
-(dbh_mm = NULL, ##<< Tree diameter at breast height in millimetres, when required by the model.
- dnm_mm = NULL, ##<< Mean plot diameter in millimetres, when required by the model.
- h_t = NULL, ##<< Tree height in metres, when required by the model.
- vcc = NULL, ##<< Merchantable volume over bark in dm3, when required by the model.
- pars ##<< One-row \code{data.frame} of SNFI coefficients. The function
-      ##<< assumes exactly one row with a \code{Modelo} field and the
-      ##<< coefficients required by that model.
+# Compute SNFI IAVC using the variables required by the selected model.
+(dbh_mm = NULL, # Tree diameter at breast height in millimetres, when required by the model.
+ dnm_mm = NULL, # Mean plot diameter in millimetres, when required by the model.
+ h_t = NULL, # Tree height in metres, when required by the model.
+ vcc = NULL, # Merchantable volume over bark in dm3, when required by the model.
+ pars # One-row \code{data.frame} of SNFI coefficients. The function
+      ## assumes exactly one row with a \code{Modelo} field and the
+      ## coefficients required by that model.
 ) {
-  ##details<<
-  ##details<< This function evaluates the SNFI equation for annual increment
-  ##details<< of volume over bark (IAVC) and returns the result in dm3.
-  ##details<< It supports models 8, 13, 14, 16, 17, 18, 19, 20, 21, and 25.
-  ##details<< The required inputs depend on the selected model.
-  ##value<< Numeric IAVC in dm3. Returns \code{NA_real_} when \code{pars}
-  ##value<< is empty, when required inputs are missing, or when the model
-  ##value<< is not recognised. Missing required inputs also trigger a
-  ##value<< printed message.
+  #
+  # This function evaluates the SNFI equation for annual increment
+  # of volume over bark (IAVC) and returns the result in dm3.
+  # It supports models 8, 13, 14, 16, 17, 18, 19, 20, 21, and 25.
+  # The required inputs depend on the selected model.
+  # Numeric IAVC in dm3. Returns \code{NA_real_} when \code{pars}
+  # is empty, when required inputs are missing, or when the model
+  # is not recognised. Missing required inputs also trigger a
+  # printed message.
 
   # check if pars available
   if(nrow(pars) == 0){
@@ -235,21 +235,21 @@ get_snfi_iavc <- function # SNFI annual increment of volume over bark
 # VLE: Volumen de leñas gruesas, en dm3
 
 get_snfi_vle <- function # SNFI coarse woody volume
-### Compute SNFI VLE from tree diameter or VCC and one coefficient row.
-(dbh_mm = NULL, ##<< Tree diameter at breast height in millimetres, when required by the model.
- vcc = NULL, ##<< Merchantable volume over bark in dm3, when required by the model.
- pars ##<< One-row \code{data.frame} of SNFI coefficients. The function
-      ##<< assumes exactly one row with a \code{Modelo} field and the
-      ##<< coefficients required by that model.
+# Compute SNFI VLE from tree diameter or VCC and one coefficient row.
+(dbh_mm = NULL, # Tree diameter at breast height in millimetres, when required by the model.
+ vcc = NULL, # Merchantable volume over bark in dm3, when required by the model.
+ pars # One-row \code{data.frame} of SNFI coefficients. The function
+      ## assumes exactly one row with a \code{Modelo} field and the
+      ## coefficients required by that model.
 ) {
-  ##details<<
-  ##details<< This function evaluates the SNFI equation for coarse woody
-  ##details<< volume (VLE) and returns the result in dm3.
-  ##details<< It supports models 10 and 12.
-  ##value<< Numeric VLE in dm3. Returns \code{NA_real_} when \code{pars}
-  ##value<< is empty, when required inputs are missing, or when the model
-  ##value<< is not recognised. Missing required inputs also trigger a
-  ##value<< printed message.
+  #
+  # This function evaluates the SNFI equation for coarse woody
+  # volume (VLE) and returns the result in dm3.
+  # It supports models 10 and 12.
+  # Numeric VLE in dm3. Returns \code{NA_real_} when \code{pars}
+  # is empty, when required inputs are missing, or when the model
+  # is not recognised. Missing required inputs also trigger a
+  # printed message.
 
   # check if pars available
   if(nrow(pars) == 0){

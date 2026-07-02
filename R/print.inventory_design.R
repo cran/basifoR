@@ -1,6 +1,4 @@
 print.inventory_design <- structure(function
-### Display the main stored components of an \code{"inventory_design"}
-### object in a compact human-readable summary.
 (
     x,   ##<< Object of class \code{"inventory_design"}.
     ...  ##<< Further arguments passed to methods. Currently unused.

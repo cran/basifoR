@@ -10,7 +10,15 @@ option \code{"basifoR.external_volume_methods"}.}
     inherits = TRUE, 
     ifnotfound = NULL))}
 \arguments{
-  \item{methods}{methods }
+  \item{methods}{Optional named \code{list} of method definitions.
+Each element should follow the structure returned by
+\code{new_volume_method()} and should usually be named with the
+requested output code (for example \code{"V"}, \code{"VCC"}, or
+\code{"VSC"}).
+
+When \code{NULL}, the function first looks for an object named
+\code{external_volume_methods} in the calling environment and, if it
+does not exist, falls back to the package defaults.}
 }
 \details{The function only assembles and validates the registry. It does not
 
@@ -23,28 +31,35 @@ in \code{methods} and then by any entries found in option
 
 \code{"basifoR.external_volume_methods"}. Each element is expected
 
-to be compatible with \code{new_volume_method()}.
-examples<< reg <- external_volume_method_registry()
-examples<< names(reg)
-examples<<
-examples<< custom <- list(
-examples<<   V = new_volume_method(
-examples<<     output = "v",
-examples<<     unit = "m3",
-examples<<     raw_unit = "m3",
-examples<<     scale_to_m3 = 1,
-examples<<     build_args = function(ctx, pars, resolved) list(),
-examples<<     fallback = function(ctx, pars, resolved) 0,
-examples<<     match_by = character(0),
-examples<<     required_inputs = "v"
-examples<<   )
-examples<< )
-examples<< reg2 <- external_volume_method_registry(custom)
-examples<< reg2$V$output}
+to be compatible with \code{new_volume_method()}.}
 
-\author{Wilson Lara <wilarhen@gmail.com> [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>), Cristobal Ordonez <angelcristobal.ordonez@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-5354-3760>), Aitor Vázquez-Veloso <aitor.vazquez.veloso@uva.es> [aut] (ORCID: <https://orcid.org/0000-0003-0227-506X>), Felipe Bravo <felipe.bravo@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
+\author{Wilson Lara [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>),
+Cristobal Ordonez [aut] (ORCID:
+<https://orcid.org/0000-0001-5354-3760>),
+Aitor Vázquez-Veloso [aut] (ORCID:
+<https://orcid.org/0000-0003-0227-506X>),
+Felipe Bravo [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
 
 
 
 
+\examples{
+reg <- external_volume_method_registry()
+names(reg)
 
+custom <- list(
+    V = new_volume_method(
+        output = "v",
+        unit = "m3",
+        raw_unit = "m3",
+        scale_to_m3 = 1,
+        build_args = function(ctx, pars, resolved) list(),
+        fallback = function(ctx, pars, resolved) 0,
+        match_by = character(0),
+        required_inputs = "v"
+    )
+)
+
+reg2 <- external_volume_method_registry(custom)
+reg2$V$output
+}

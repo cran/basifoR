@@ -13,7 +13,9 @@ are transformed into stand units, see Details section.}
     metric_levels = NULL, 
     cut.dt = "d == d", 
     report = FALSE, mc.cores = getOption("mc.cores", 
-        1L), ...)}
+        1L), domheight_method = "Hd_strict", 
+    domheight_registry = dominant_height_method_registry(), 
+    ...)}
 \arguments{
   \item{nfi}{\code{character}, \code{data.frame}, or \code{list}. A
 province name or province number used to locate SNF data;
@@ -36,13 +38,22 @@ metrics such as \code{Hd} before final
 summarization. When \code{NULL}, metric
 computation follows \code{summ.vr}.}
   \item{cut.dt}{\code{character}. Logical condition used
-to subset the output. Default \code{'d == d'}
-avoids subsetting.}
+to subset the output. For grouped summaries, use
+\code{n_tot} to filter total stand density. Default
+\code{'d == d'} avoids subsetting.}
   \item{report}{\code{logical}. Print a \code{report} of the output
 in the current working directory.}
   \item{mc.cores}{\code{integer}. Number
 of cores used when several
 inputs are processed.}
+  \item{domheight_method}{Dominant-height method used when
+\code{Hd} is recomputed during
+summary preparation. The default
+preserves the previous strict
+dendrometric behavior.}
+  \item{domheight_registry}{Named
+dominant-height registry created
+with \code{dominant_height_method_registry()}.}
   \item{\dots}{Additional arguments passed to \code{\link{readNFI}},
 \code{\link{nfiMetrics}}, or \code{\link{metrics2Vol}},
 including \code{nfi.nr} when required.}
@@ -61,9 +72,8 @@ area \code{ba} (\code{'m2 ha-1'}), mean
 diameter at breast height \code{d}
 (\code{'cm'}), quadratic mean diameter
 \code{dg} (\code{'cm'}), mean tree
-height \code{h} (\code{'m'}), number of
-trees per hectare \code{n}
-(\code{'dimensionless'}), and over-bark
+height \code{h} (\code{'m'}), total stand
+density \code{n_tot} (\code{'ha-1'}), and over-bark
 volume \code{v} (\code{'m3 ha-1'}).
 
 When \code{summ.vr = NULL}, the function
@@ -75,9 +85,10 @@ When \code{summ.vr} is not \code{NULL},
 the function converts supported
 variables to stand units, splits the data
 by the requested grouping variable, and
-computes summaries by group. Extensive
-variables are multiplied by \code{n}
-before summation. Variables \code{d},
+computes summaries by group. The tree-level
+expansion factor \code{n} is used internally for
+weighting and summation; its group total is returned
+as \code{n_tot}. Variables \code{d},
 \code{h}, and \code{Hd}, when present,
 are returned as averages weighted by
 \code{n}.
@@ -99,11 +110,16 @@ into a single output data frame.
 Parallel processing is controlled by
 \code{mc.cores}. Values greater than 1
 process several inputs in parallel.}
-\value{\code{data.frame}. Depending on \code{summ.vr = NULL}, an output from
-\code{\link{metrics2Vol}}, or a summary of the variables, see
-Details section.}
+\value{\code{data.frame}. With \code{summ.vr = NULL}, tree-level output keeps
+the expansion-factor column \code{n}. With grouped summaries, total stand
+density is returned as \code{n_tot}. See Details.}
 
-\author{Wilson Lara <wilarhen@gmail.com> [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>), Cristobal Ordonez <angelcristobal.ordonez@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-5354-3760>), Aitor Vázquez-Veloso <aitor.vazquez.veloso@uva.es> [aut] (ORCID: <https://orcid.org/0000-0003-0227-506X>), Felipe Bravo <felipe.bravo@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
+\author{Wilson Lara [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>),
+Cristobal Ordonez [aut] (ORCID:
+<https://orcid.org/0000-0001-5354-3760>),
+Aitor Vázquez-Veloso [aut] (ORCID:
+<https://orcid.org/0000-0003-0227-506X>),
+Felipe Bravo [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
 
 
 
@@ -116,7 +132,7 @@ toy_metrics <- structure(
         Estadillo = c("plot1", "plot1", "plot2"),
         Especie   = c("sp1", "sp2", "sp1"),
         d         = c(120, 185, 260),          # mm
-        h         = c(71, 94, 132),            # dm
+        h         = c(7.1, 9.4, 13.2),         # m
         ba        = c(0.0113, 0.0269, 0.0531), # m2 tree-1
         n         = c(127.32, 31.83, 14.15),
         stringsAsFactors = FALSE
@@ -124,7 +140,7 @@ toy_metrics <- structure(
     class = c("nfiMetrics", "data.frame"),
     units = c(
         d  = "mm",
-        h  = "dm",
+        h  = "m",
         ba = "m2 tree-1",
         n  = "ha-1"
     ),
@@ -137,7 +153,8 @@ dendromet_toy <- dendroMetrics(toy_metrics, summ.vr = "Estadillo")
 ## Display output structure
 str(dendromet_toy)
 
-## Check returned units
+## The tree-level expansion factor n is summed and returned as n_tot
+names(dendromet_toy)
 attr(dendromet_toy, "units")
 
 ## Return tree-level processed data
@@ -146,5 +163,4 @@ head(tree_toy)
 
 ## Alternatively, download data from 'www.miteco.gob.es'
 ## Specify province name/number and nfi number to compute dendrometrics.
-    
 }

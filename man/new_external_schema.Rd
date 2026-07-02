@@ -1,18 +1,7 @@
 \name{new_external_schema}
 \alias{new_external_schema}
 \title{Define a schema for external inventory workflows}
-\description{Create a reusable \code{"external_schema"} object that records how
-Create a reusable schema with column aliases, \code{units}, default grouping settings, retained columns, and optional \code{defaults} for the external basifoR workflow.
-source columns in an external inventory correspond to the standardized
-Create a reusable schema with column aliases, \code{units}, default grouping settings, retained columns, and optional \code{defaults} for the external basifoR workflow.
-field names used by the basifoR external workflow. The schema can also
-Create a reusable schema with column aliases, \code{units}, default grouping settings, retained columns, and optional \code{defaults} for the external basifoR workflow.
-store declared measurement \code{units}, default grouping \code{levels}, columns to
-Create a reusable schema with column aliases, \code{units}, default grouping settings, retained columns, and optional \code{defaults} for the external basifoR workflow.
-preserve during processing, and auxiliary \code{defaults} that wrapper
-Create a reusable schema with column aliases, \code{units}, default grouping settings, retained columns, and optional \code{defaults} for the external basifoR workflow.
-functions may reuse across repeated calls.
-Create a reusable schema with column aliases, \code{units}, default grouping settings, retained columns, and optional \code{defaults} for the external basifoR workflow.}
+\description{Create a reusable \code{"external_schema"} object that records how source columns in an external inventory correspond to the standardized field names used by the basifoR external workflow. The schema can also store declared measurement \code{units}, default grouping \code{levels}, columns to preserve during processing, and auxiliary \code{defaults} that wrapper functions may reuse across repeated calls.}
 \usage{new_external_schema(colmap, 
     units = list(), levels = NULL, 
     keep_cols = NULL, 
@@ -37,7 +26,12 @@ interpretation to downstream helpers such as
 \code{external_dendroMetrics()}.}
 \value{An object of class \code{"external_schema"} containing normalized \code{colmap}, \code{units}, \code{levels}, \code{keep_cols}, and \code{defaults} components, ready to pass to external workflow wrappers.}
 
-\author{Wilson Lara <wilarhen@gmail.com> [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>), Cristobal Ordonez <angelcristobal.ordonez@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-5354-3760>), Aitor Vázquez-Veloso <aitor.vazquez.veloso@uva.es> [aut] (ORCID: <https://orcid.org/0000-0003-0227-506X>), Felipe Bravo <felipe.bravo@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
+\author{Wilson Lara [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>),
+Cristobal Ordonez [aut] (ORCID:
+<https://orcid.org/0000-0001-5354-3760>),
+Aitor Vázquez-Veloso [aut] (ORCID:
+<https://orcid.org/0000-0003-0227-506X>),
+Felipe Bravo [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
 
 
 

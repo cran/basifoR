@@ -1,13 +1,10 @@
 snfi_volume_method_registry <- structure(function(
     # Build the active SNFI volume-method registry
     ### Assemble the registry of SNFI volume methods used by \code{metrics2Vol()}. The function starts from the package defaults, optionally merges a user-supplied registry, and then applies session-level overrides from \code{options(basifoR.snfi_volume_methods = ...)}.
-    equations = get0("snfi_volume_equations",
+    equations = get0( ##<< Optional named list of SNFI method definitions to merge with the defaults; top-level names identify outputs such as \code{"V"}, \code{"VCC"}, or \code{"VSC"}.
+                     "snfi_volume_equations",
                      inherits = TRUE,
                      ifnotfound = NULL)
-    ##<< Optional named list of SNFI method definitions to merge with the defaults.
-    ##<< Each top-level name should identify a requested output such as \code{"V"},
-    ##<< \code{"VCC"}, or \code{"VSC"}. Each element may define a complete method
-    ##<< or a partial override of an existing one.
 ) {
     ##title<< Assemble the active SNFI volume-method registry
     ##description<< Return the final registry of SNFI volume methods after merging package defaults, optional user definitions, and session-level option overrides.
@@ -28,16 +25,24 @@ snfi_volume_method_registry <- structure(function(
     ##details<< so you can replace only selected fields without rebuilding the whole
     ##details<< registry.
     ##details<<
-    ##details<< Each registry entry is a named list that typically contains fields such
-    ##details<< as \code{output}, \code{fun_name}, \code{unit}, \code{raw_unit},
+    ##details<< Each registry entry is a named list that typically contains descriptive
+    ##details<< fields such as \code{label}, \code{equation}, \code{reference}, and
+    ##details<< \code{description}, together with computational fields such as
+    ##details<< \code{output}, \code{fun_name}, \code{unit}, \code{raw_unit},
     ##details<< \code{scale_to_m3}, \code{build_args}, and \code{fallback}. The
     ##details<< function checks only that the supplied registry is a named list;
     ##details<< downstream functions validate and use the individual fields.
+    ##details<< When overriding a computational method, also override its descriptive
+    ##details<< metadata so reported equations and references remain accurate.
     ##value<< A named list of SNFI volume-method definitions.
     ##value<< Names usually correspond to requested parameters such as \code{"V"},
     ##value<< \code{"VCC"}, and \code{"VSC"}.
     ##value<< Each element describes one computation pathway and commonly includes:
     ##value<< \describe{
+    ##value<<   \item{\code{label}}{Human-readable name of the volume method.}
+    ##value<<   \item{\code{equation}}{Concise description of the equation or computation.}
+    ##value<<   \item{\code{reference}}{Source associated with the method.}
+    ##value<<   \item{\code{description}}{Short explanation of the returned quantity.}
     ##value<<   \item{\code{output}}{Name of the output column returned by the method.}
     ##value<<   \item{\code{fun_name}}{Name of the equation helper called at run time, or \code{NULL} for direct passthrough methods.}
     ##value<<   \item{\code{unit}}{Returned unit after scaling, usually \code{"m3 tree-1"}.}
@@ -65,12 +70,11 @@ snfi_volume_method_registry <- structure(function(
 
     utils::modifyList(defaults, equations)
 }, ex = function(){
-c(
-    "reg <- snfi_volume_method_registry()",
-    "names(reg)",
-    "reg$VCC$output",
-    "custom <- list(VCC = list(output = 'vcc_m3'))",
-    "reg2 <- snfi_volume_method_registry(custom)",
-    "reg2$VCC$output"
-)
+    reg <- snfi_volume_method_registry()
+    names(reg)
+    reg$VCC$output
+
+    custom <- list(VCC = list(output = "vcc_m3"))
+    reg2 <- snfi_volume_method_registry(custom)
+    reg2$VCC$output
 })

@@ -1,14 +1,7 @@
 \name{new_volume_method}
 \alias{new_volume_method}
 \title{Define one external volume-computation method}
-\description{Creates a compact method specification for the external volume registry. A method definition tells 
-Create a method specification for registry-based volume calculations in external inventory workflows.
-\code{externalMetrics2Vol} which \code{output} to compute, where to find or resolve parameters, how to 
-Create a method specification for registry-based volume calculations in external inventory workflows.
-build the argument list for the equation, how to scale the raw result to cubic metres, and which 
-Create a method specification for registry-based volume calculations in external inventory workflows.
-\code{fallback} to return when a direct computation is not possible.
-Create a method specification for registry-based volume calculations in external inventory workflows.}
+\description{Create a method specification for registry-based volume calculations in external inventory workflows.}
 \usage{new_volume_method(output, 
     fun = NULL, fun_name = NULL, 
     unit = "m3", raw_unit = unit, 
@@ -29,7 +22,7 @@ Create a method specification for registry-based volume calculations in external
   \item{raw_unit}{\code{character(1)}. Unit produced by the raw method before applying \code{scale_to_m3}.}
   \item{scale_to_m3}{\code{numeric(1)}. Multiplicative factor used to convert the raw result to cubic metres.}
   \item{build_args}{\code{function}. Builds the argument list passed to the equation function. It receives the current row context, the selected parameter row, and already resolved outputs.}
-  \item{fallback}{fallback }
+  \item{fallback}{\code{function}. Returns a \code{fallback} value when the method cannot compute a raw result, for example because the function, parameters, or arguments are missing.}
   \item{match_by}{\code{character}. Column names used to match candidate parameter rows against the current row context.}
   \item{get_pars}{Optional \code{function}. Custom resolver that returns the parameter rows to use for the current tree or observation.}
   \item{pars}{Optional embedded parameter table stored inside the method definition.}
@@ -49,7 +42,12 @@ The list contains the components \code{output}, \code{fun},
 
 \code{filter_pars}, and \code{required_inputs}.}
 
-\author{Wilson Lara <wilarhen@gmail.com> [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>), Cristobal Ordonez <angelcristobal.ordonez@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-5354-3760>), Aitor Vázquez-Veloso <aitor.vazquez.veloso@uva.es> [aut] (ORCID: <https://orcid.org/0000-0003-0227-506X>), Felipe Bravo <felipe.bravo@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
+\author{Wilson Lara [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>),
+Cristobal Ordonez [aut] (ORCID:
+<https://orcid.org/0000-0001-5354-3760>),
+Aitor Vázquez-Veloso [aut] (ORCID:
+<https://orcid.org/0000-0003-0227-506X>),
+Felipe Bravo [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
 
 
 

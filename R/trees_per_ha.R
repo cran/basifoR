@@ -1,7 +1,4 @@
 trees_per_ha <- structure(function
-### Dispatch on the sampling-design class to return the expansion factor,
-### expressed as trees per hectare, associated with a tree of a given
-### diameter at breast height.
 (
     design, ##<< Sampling design object. Supported methods currently include \code{"inventory_design"} and \code{"concentric_design"}.
     dbh_cm  ##<< \code{numeric}. Diameter at breast height in \code{cm}. When several values are supplied, methods first coerce them to numeric and then use their mean after removing missing values.
@@ -29,10 +26,7 @@ trees_per_ha <- structure(function
 })
 
 
-trees_per_ha.inventory_design <- structure(function #Compute trees per hectare for generic inventory designs
-### Match a tree diameter to the tally tier of a generic
-### \code{"inventory_design"} object and return the corresponding
-### trees-per-hectare expansion factor.
+trees_per_ha.inventory_design <- structure(function
 (
     design, ##<< Object of class \code{"inventory_design"} created by helpers such as \code{\link{new_inventory_design}}.
     dbh_cm  ##<< \code{numeric}. Diameter at breast height in \code{cm}. When several values are supplied, the method uses their mean after removing missing values.
@@ -74,10 +68,7 @@ trees_per_ha.inventory_design <- structure(function #Compute trees per hectare f
 })
 
 
-trees_per_ha.concentric_design <- structure(function #Compute trees per hectare for concentric subplot designs
-### Match a tree diameter to the appropriate subplot of a
-### \code{"concentric_design"} object and return the corresponding
-### trees-per-hectare expansion factor.
+trees_per_ha.concentric_design <- structure(function
 (
     design, ##<< Object of class \code{"concentric_design"} created by helpers such as \code{\link{new_concentric_design}} or \code{\link{snfi_design}}.
     dbh_cm  ##<< \code{numeric}. Diameter at breast height in \code{cm}. When several values are supplied, the method uses their mean after removing missing values.

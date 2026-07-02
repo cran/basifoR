@@ -3,11 +3,9 @@ externalMetrics <- structure(function
 ##description<< Standardize external tree measurements for external inventory workflows and return requested tree-level metrics in basifoR units.
 (
     x, ##<< Input data.frame with one row per tree or stem.
-    var = c("d", "h", "ba", "n", "Hd"), ##<< Requested metrics to return.
-### Supported values are \code{"d"}, \code{"h"}, \code{"ba"},
-### \code{"n"}, and \code{"Hd"}. Requesting \code{"Hd"} also
-### requires \code{"d"}, \code{"h"}, and \code{"n"}.
-    levels = NULL, ##<< Grouping columns to keep in the output.
+    var = c("d", "h", "ba", "n", "Hd", "Dd"), ##<< Requested metrics to return. Supported values are \code{"d"}, \code{"h"}, \code{"ba"}, \code{"n"}, \code{"Hd"}, and \code{"Dd"}. Requesting \code{"Hd"} requires \code{"d"}, \code{"h"}, and \code{"n"}; requesting \code{"Dd"} requires \code{"d"} and \code{"n"}.
+    levels = NULL, ##<< Columns defining the groups within which dominant
+                   ## metrics are computed.
     design, ##<< Inventory design used to compute expansion factors for \code{n}.
     colmap = NULL,
 ### Named list of candidate raw column names for diameter and height.
@@ -15,14 +13,21 @@ externalMetrics <- structure(function
 ### as \code{diameter_1} or \code{height.2}.
     d_unit = c("mm", "cm")[1], ##<< Unit of raw diameter columns in \code{colmap$d}.
     h_unit = c("m", "dm", "cm")[1], ##<< Unit of raw height columns in \code{colmap$h}.
-    keep_cols = NULL, ##<< Additional source columns to carry into the result.
-    domheight_fun = NULL ##<< Function used when \code{"Hd"} is requested.
+    keep_cols = NULL, ##<< Additional source columns to carry into the result
+                      ## without changing the groups defined by \code{levels}.
+    domheight_fun = NULL, ##<< Optional function used when \code{"Hd"} is requested. If supplied, it overrides \code{domheight_method}.
+    domdiameter_fun = NULL, ##<< Optional function used when \code{"Dd"} is
+                            ## requested together with a custom
+                            ## \code{domheight_fun}. It must accept \code{d}
+                            ## and \code{n}.
+    domheight_method = "Hd_strict", ##<< Dominant-height method code resolved through \code{domheight_registry} when \code{domheight_fun = NULL}.
+    domheight_registry = dominant_height_method_registry() ##<< Named registry created with \code{\link{dominant_height_method_registry}}.
 ) {
     ##details<< The function first resolves measurement columns from \code{colmap}. Exact matches are preferred, then case-insensitive matches with optional numeric suffixes are considered. When several repeated measurement columns are found for the same variable, row-wise non-missing means are used.
-    ##details<< Zero values in resolved diameter or height columns are treated as missing before aggregation. Returned units are standardized to millimetres for \code{d}, decimetres for \code{h} and \code{Hd}, square metres per tree for \code{ba}, and trees per hectare for \code{n}.
-    ##details<< When \code{var} includes \code{"n"}, the function uses \code{design} to obtain expansion factors. Fixed-area designs call \code{trees_per_ha()}, while concentric designs choose the proper factor from the design thresholds. When \code{var} includes \code{"Hd"}, dominant height is computed within each resolved group defined by \code{levels} and \code{keep_cols}.
+    ##details<< Zero values in resolved diameter or height columns are treated as missing before aggregation. Returned units are standardized to millimetres for \code{d} and \code{Dd}, metres for \code{h} and \code{Hd}, square metres per tree for \code{ba}, and trees per hectare for \code{n}.
+    ##details<< When \code{var} includes \code{"n"}, the function uses \code{design} to obtain expansion factors. Fixed-area designs call \code{trees_per_ha()}, while concentric designs choose the proper factor from the design thresholds. Dominant height and dominant diameter are computed within each resolved group defined only by \code{levels}; \code{keep_cols} preserves source columns without changing those groups. Both metrics use the diameter ordering, threshold, and fallback convention selected through \code{domheight_registry}; \code{Dd} uses valid diameter and expansion-factor values and therefore may be available when \code{Hd} is missing because heights are unavailable. When both metrics are requested with custom functions, supply both \code{domheight_fun} and \code{domdiameter_fun} so the pair remains explicit.
     ##value<< A data.frame containing the requested tree-level metrics, optionally preceded by resolved grouping columns.
-    ##value<< The returned object inherits from classes \code{"externalMetrics"} and \code{"nfiMetrics"}. Unit metadata are stored in \code{attr(out, "units")}. When \code{var} includes \code{"n"} or \code{"Hd"}, the result also stores sampling design metadata in \code{attr(out, "design_meta")}.
+    ##value<< The returned object inherits from classes \code{"externalMetrics"} and \code{"nfiMetrics"}. Unit metadata are stored in \code{attr(out, "units")}. When \code{var} includes \code{"n"}, \code{"Hd"}, or \code{"Dd"}, the result also stores sampling design metadata in \code{attr(out, "design_meta")}.
 
     x0 <- x
     if (is.null(x0))
@@ -44,10 +49,51 @@ externalMetrics <- structure(function
         )
     }
         
- if (is.null(domheight_fun)) {
-        domheight_fun <- get0("domheight_strict", mode = "function", inherits = TRUE)
-        if (is.null(domheight_fun))
-            domheight_fun <- get0("domheight", mode = "function", inherits = TRUE)
+    method_info <- resolve_dominant_height_method(
+        method = domheight_method,
+        registry = domheight_registry
+    )
+    custom_domheight <- !is.null(domheight_fun)
+    custom_domdiameter <- !is.null(domdiameter_fun)
+
+    if (custom_domheight && !is.function(domheight_fun))
+        stop("'domheight_fun' must be a function or NULL.", call. = FALSE)
+
+    if (custom_domheight && "Dd" %in% var && !custom_domdiameter) {
+        stop(
+            "When 'Dd' is requested with a custom 'domheight_fun', ",
+            "supply the paired 'domdiameter_fun'.",
+            call. = FALSE
+        )
+    }
+    if (custom_domdiameter && "Hd" %in% var && !custom_domheight) {
+        stop(
+            "When 'Hd' is requested with a custom 'domdiameter_fun', ",
+            "supply the paired 'domheight_fun'.",
+            call. = FALSE
+        )
+    }
+
+    if (is.null(domdiameter_fun))
+        domdiameter_fun <- method_info$diameter_fun
+    if (!is.null(domdiameter_fun) && !is.function(domdiameter_fun))
+        stop("'domdiameter_fun' must be a function or NULL.", call. = FALSE)
+
+    dominant_height_meta <- NULL
+    dominant_diameter_meta <- NULL
+    if (is.null(domheight_fun)) {
+        domheight_fun <- method_info$fun
+        dominant_height_meta <- method_info$meta
+    } else {
+        dominant_height_meta <- list(
+            method = "custom_function",
+            output = "Hd",
+            fun_name = NA_character_,
+            unit = "m",
+            equation = NA_character_,
+            selection_rule = "User-supplied dominant-height function.",
+            fallback = NA_character_
+        )
     }
     
     d_unit <- match.arg(d_unit, c("mm", "cm"))
@@ -140,10 +186,10 @@ externalMetrics <- structure(function
         stop("Unsupported diameter unit: ", unit, call. = FALSE)
     }
 
-    convert_h_to_dm <- function(z, unit) {
-        if (unit == "m")  return(z * 10)
-        if (unit == "dm") return(z)
-        if (unit == "cm") return(z / 10)
+    convert_h_to_m <- function(z, unit) {
+        if (unit == "m")  return(z)
+        if (unit == "dm") return(z / 10)
+        if (unit == "cm") return(z / 100)
         stop("Unsupported height unit: ", unit, call. = FALSE)
     }
 
@@ -170,8 +216,17 @@ externalMetrics <- structure(function
     var0 <- unique(var)
     if ("Hd" %in% var0 && !all(c("d", "h", "n") %in% var0))
         stop("Hd requires var to include 'd', 'h', and 'n'.", call. = FALSE)
+    if ("Dd" %in% var0 && !all(c("d", "n") %in% var0))
+        stop("Dd requires var to include 'd' and 'n'.", call. = FALSE)
+    if ("Dd" %in% var0 && !is.function(domdiameter_fun)) {
+        stop(
+            "Dominant method '", method_info$method,
+            "' does not define a paired dominant-diameter function.",
+            call. = FALSE
+        )
+    }
 
-    var_base <- setdiff(var0, "Hd")
+    var_base <- setdiff(var0, c("Hd", "Dd"))
 
     diam_cols <- character(0)
     ht_cols   <- character(0)
@@ -192,7 +247,7 @@ externalMetrics <- structure(function
 
     diam_mm <- NULL
     diam_cm <- NULL
-    ht_dm   <- NULL
+    ht_m    <- NULL
     trees_ha <- NULL
 
     if (length(diam_cols)) {
@@ -226,7 +281,7 @@ externalMetrics <- structure(function
             ht_raw[nn == 0L] <- NA_real_
         }
 
-        ht_dm <- convert_h_to_dm(ht_raw, h_unit)
+        ht_m <- convert_h_to_m(ht_raw, h_unit)
     }
 
     out_metrics <- list()
@@ -236,7 +291,7 @@ externalMetrics <- structure(function
             out_metrics[[met]] <- diam_mm
 
         if (met == "h")
-            out_metrics[[met]] <- ht_dm
+            out_metrics[[met]] <- ht_m
 
         if (met == "ba")
             out_metrics[[met]] <- pi * diam_cm^2 / 40000
@@ -247,17 +302,19 @@ externalMetrics <- structure(function
 
     out <- data.frame(out_metrics, check.names = FALSE, stringsAsFactors = FALSE)
 
-    group_cols <- resolve_group_cols(x, unique(c(levels, keep_cols)))
-    if (length(group_cols)) {
+    group_cols <- resolve_group_cols(x, levels)
+    retained_cols <- resolve_group_cols(x, unique(c(levels, keep_cols)))
+    if (length(retained_cols)) {
         out <- data.frame(
-            x[, group_cols, drop = FALSE],
+            x[, retained_cols, drop = FALSE],
             out,
             check.names = FALSE,
             stringsAsFactors = FALSE
         )
     }
 
-    if ("Hd" %in% var0) {
+    dominant_requested <- intersect(c("Hd", "Dd"), var0)
+    if (length(dominant_requested)) {
         if (is.null(domheight_fun))
             stop("Hd requested but no dominant-height function is available.",
                  call. = FALSE)
@@ -271,10 +328,18 @@ externalMetrics <- structure(function
         spl <- split(out, grp, drop = TRUE)
 
         spl <- lapply(spl, function(y) {
-            y$Hd <- tryCatch(
-                domheight_fun(y$h, y$d, y$n),
-                error = function(e) NA_real_
-            )
+            if ("Hd" %in% dominant_requested) {
+                y$Hd <- tryCatch(
+                    domheight_fun(h = y$h, d = y$d, n = y$n),
+                    error = function(e) NA_real_
+                )
+            }
+            if ("Dd" %in% dominant_requested) {
+                y$Dd <- tryCatch(
+                    domdiameter_fun(d = y$d, n = y$n),
+                    error = function(e) NA_real_
+                )
+            }
             y
         })
 
@@ -284,14 +349,39 @@ externalMetrics <- structure(function
 
     metric_units <- c(
         d  = "mm",
-        h  = "dm",
+        h  = "m",
         ba = "m2",
         n  = "",
-        Hd = "dm"
+        Hd = "m",
+        Dd = "mm"
     )
     attr(out, "units") <- metric_units[intersect(names(out), names(metric_units))]
 
-    if (any(var0 %in% c("n", "Hd"))) {
+    if ("Hd" %in% var0 && !is.null(dominant_height_meta))
+        attr(out, "dominant_height_meta") <- dominant_height_meta
+
+    if ("Dd" %in% var0) {
+        if (custom_domdiameter) {
+            dominant_diameter_meta <- list(
+                method = "custom_function",
+                output = "Dd",
+                fun_name = NA_character_,
+                unit = "mm",
+                equation = NA_character_,
+                selection_rule = "User-supplied dominant-diameter function.",
+                fallback = NA_character_
+            )
+        } else {
+            dominant_diameter_meta <- method_info$meta
+            dominant_diameter_meta$output <- "Dd"
+            dominant_diameter_meta$unit <- method_info$definition$diameter_unit
+            dominant_diameter_meta$equation <- method_info$definition$diameter_equation
+            dominant_diameter_meta$fun_name <- method_info$definition$diameter_fun_name
+        }
+        attr(out, "dominant_diameter_meta") <- dominant_diameter_meta
+    }
+
+    if (any(var0 %in% c("n", "Hd", "Dd"))) {
         attr(out, "design_meta") <- list(
             name = design$name %||% NA_character_,
             class = class(design),

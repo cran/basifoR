@@ -7,7 +7,7 @@ metrics2Vol <- structure(function(
 ### keeps legacy outputs (from previous versions of the package) and
 ### provenance information.
     nfi,
-    ### Input accepted by `nfiMetrics()`, or a precomputed `"nfiMetrics"`
+    ### Input accepted by \code{nfiMetrics()}, or a precomputed \code{"nfiMetrics"}
     ### object with tree-level metrics.
     cub.met = "freq",
     ### Cubication selector used when several coefficient rows match.
@@ -18,36 +18,43 @@ metrics2Vol <- structure(function(
     keep.legacy = FALSE,
     ### Also return the legacy volume estimate for backward compatibility.
     method_registry = snfi_volume_method_registry(),
-    ### Registry that maps each requested output to its equation function,
-    ### output column name, units, and fallback rule.
+    ### Registry that maps each requested output to descriptive metadata,
+    ### its equation function, output column name, units, and fallback rule.
     track_provenance = FALSE,
-    ### Add per-row provenance columns and audit metadata.
+    ### Add per-row provenance columns and audit metadata, including the
+    ### method label, equation description, reference, and output description.
     ...
-    ### Passed to `nfiMetrics()` when `nfi` is not already an
-    ### `"nfiMetrics"` object.
+    ### Passed to \code{nfiMetrics()} when \code{nfi} is not already an
+    ### \code{"nfiMetrics"} object.
 ) {
     ##title<< Compute tree-level volume variables from NFI metrics
     ##details<<
     ##details<< Computes requested volume outputs from standardized NFI
     ##details<< tree metrics using registry-based methods and optional
-    ##details<< fallback to legacy estimates.
+    ##details<< fallback to legacy estimates. With
+    ##details<< \code{track_provenance = TRUE}, the \code{volume_meta}
+    ##details<< attribute also records each method's label, equation
+    ##details<< description, reference, units, scale, and output description.
     ##value<<
-    ##value<< A data.frame with the requested volume outputs added.
-    ##seealso<< nfiMetrics, snfi_volume_method_registry
-    ##note<< Registry-based dispatcher for volume equations.
-    
-## Return early for `NULL` input.
+    ##value<< A data.frame with the requested volume outputs added. When
+    ##value<< \code{track_provenance = TRUE}, attribute \code{volume_meta}
+    ##value<< contains computational and descriptive method metadata.
+    ##seealso<< nfiMetrics, snfi_volume_method_registry,
+    ##seealso<< default_snfi_volume_equations
+    # Registry-based dispatcher for volume equations.
+
+    # Return early for NULL input.
     nfi. <- nfi
     if (is.null(nfi.))
         return(nfi)
 
-    ## Build dendrometric metrics when the input is not already
-    ## standardized.
+    # Build dendrometric metrics when the input is not already
+    # standardized.
     if (!inherits(nfi., "nfiMetrics"))
         nfi <- nfiMetrics(nfi, ...)
 
-    ## Resolve the inventory edition from the object attribute first and
-    ## from a column only as a fallback.
+    # Resolve the inventory edition from the object attribute first and
+    # from a column only as a fallback.
     nfi_nr <- attr(nfi, "nfi.nr")
 
     if (is.null(nfi_nr) || length(nfi_nr) != 1L || is.na(nfi_nr)) {
@@ -71,7 +78,7 @@ metrics2Vol <- structure(function(
     nm0 <- names(nfi)
     nm <- tolower(nm0)
 
-    ## Match the first available column name among accepted aliases.
+    # Match the first available column name among accepted aliases.
     pick_col <- function(candidates, required = TRUE) {
         ii <- match(tolower(candidates), nm)
         ii <- ii[!is.na(ii)]
@@ -184,6 +191,21 @@ metrics2Vol <- structure(function(
         leg$.rowid_legacy <- seq_len(nrow(leg))
         if (!is.null(nfi.nr))
             attr(leg, "nfi.nr") <- nfi.nr
+
+        ## The legacy helper evaluates old equations with h in dm.  Current
+        ## basifoR tree metrics expose h in m, so make that metadata explicit
+        ## before entering the compatibility path.
+        leg_units <- attr(leg, "units")
+        if (is.null(leg_units))
+            leg_units <- c(d = "mm", h = "m")
+        if (is.null(names(leg_units)))
+            stop("Legacy metrics2Vol requires named unit metadata.",
+                 call. = FALSE)
+        if ("d" %in% names(leg) && !"d" %in% names(leg_units))
+            leg_units["d"] <- "mm"
+        if ("h" %in% names(leg) && !"h" %in% names(leg_units))
+            leg_units["h"] <- "m"
+        attr(leg, "units") <- leg_units
 
         old <- tryCatch(
             metrics2Vol_legacy(leg, cub.met = cub.met, keep.var = FALSE),
@@ -689,6 +711,10 @@ need_legacy <- keep.legacy || "V" %in% parametro
                     list(
                         param = param,
                         output = def$output %||% tolower(param),
+                        label = def$label %||% param,
+                        equation = def$equation %||% NA_character_,
+                        reference = def$reference %||% NA_character_,
+                        description = def$description %||% NA_character_,
                         raw_unit = def$raw_unit %||% NA_character_,
                         returned_unit = def$unit %||% "m3 tree-1",
                         scale_to_m3 = def$scale_to_m3 %||% (1 / 1000)
@@ -706,11 +732,54 @@ need_legacy <- keep.legacy || "V" %in% parametro
         warning(paste(unique(warn_msg), collapse = "\n"), call. = FALSE)
 
     out
-},
-ex = c(
-    "if (FALSE) {",
-    "  x <- nfiMetrics('toledo')",
-    "  y <- metrics2Vol(x, parametro = c('VCC', 'VSC'))",
-    "  head(y[c('nfi.nr', 'pr', 'especie', 'vcc', 'vsc')])",
-    "}"
-))
+}, ex = function() {
+    x <- structure(
+        data.frame(
+            nfi.nr = 4,
+            pr = 28,
+            especie = 21,
+            d = c(180, 260),
+            h = c(9.5, 14.2),
+            n = c(31.83, 14.15)
+        ),
+        class = c("nfiMetrics", "data.frame"),
+        units = c(d = "mm", h = "m", n = "ha-1"),
+        nfi.nr = 4
+    )
+
+    demo_registry <- snfi_volume_method_registry(list(
+        VCC = list(
+            output = "vcc_demo",
+            fun = function(dbh_mm, h_m, pars) {
+                pars$k[1] * dbh_mm^2 * h_m
+            },
+            raw_unit = "m3 tree-1",
+            unit = "m3 tree-1",
+            scale_to_m3 = 1,
+            build_args = function(ctx, pars, resolved) {
+                list(dbh_mm = ctx$d_mm, h_m = ctx$h_m, pars = pars)
+            },
+            fallback = function(ctx, pars, resolved) NA_real_,
+            pars = data.frame(
+                nfi.nr = 4,
+                pr = 28,
+                especie = 21,
+                k = 1e-7
+            )
+        )
+    ))
+
+    y <- metrics2Vol(
+        x,
+        parametro = "VCC",
+        method_registry = demo_registry,
+        keep.var = FALSE
+    )
+
+    y[, c("nfi.nr", "pr", "especie", "vcc_demo")]
+
+    ## Real SNFI workflows may require local Access/mdbtools support or
+    ## previously cached data, so they are intentionally not run here.
+    ## z <- nfiMetrics(28, nfi.nr = 4, dir = tools::R_user_dir("basifoR", "cache"))
+    ## metrics2Vol(z, parametro = c("VCC", "VSC"))
+})

@@ -16,33 +16,48 @@ provenance information.}
     track_provenance = FALSE, 
     ...)}
 \arguments{
-  \item{nfi}{Input accepted by `nfiMetrics()`, or a precomputed `"nfiMetrics"`
+  \item{nfi}{Input accepted by \code{nfiMetrics()}, or a precomputed \code{"nfiMetrics"}
 object with tree-level metrics.}
   \item{cub.met}{Cubication selector used when several coefficient rows match.}
   \item{parametro}{One or more volume outputs to compute.}
   \item{keep.var}{Keep auxiliary coefficient columns when available.}
   \item{keep.legacy}{Also return the legacy volume estimate for backward compatibility.}
-  \item{method_registry}{Registry that maps each requested output to its equation function,
-output column name, units, and fallback rule.}
-  \item{track_provenance}{Add per-row provenance columns and audit metadata.}
-  \item{\dots}{Passed to `nfiMetrics()` when `nfi` is not already an
-`"nfiMetrics"` object.}
+  \item{method_registry}{Registry that maps each requested output to descriptive metadata,
+its equation function, output column name, units, and fallback rule.}
+  \item{track_provenance}{Add per-row provenance columns and audit metadata, including the
+method label, equation description, reference, and output description.}
+  \item{\dots}{Passed to \code{nfiMetrics()} when \code{nfi} is not already an
+\code{"nfiMetrics"} object.}
 }
 \details{Computes requested volume outputs from standardized NFI
 
 tree metrics using registry-based methods and optional
 
-fallback to legacy estimates.}
-\value{A data.frame with the requested volume outputs added.}
+fallback to legacy estimates. With
 
-\author{Wilson Lara <wilarhen@gmail.com> [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>), Cristobal Ordonez <angelcristobal.ordonez@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-5354-3760>), Aitor Vázquez-Veloso <aitor.vazquez.veloso@uva.es> [aut] (ORCID: <https://orcid.org/0000-0003-0227-506X>), Felipe Bravo <felipe.bravo@uva.es> [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
-\note{Registry-based dispatcher for volume equations.
-Return early for `NULL` input.
-Build dendrometric metrics when the input is not already
-standardized.
-Resolve the inventory edition from the object attribute first and
-from a column only as a fallback.
-Match the first available column name among accepted aliases.
+\code{track_provenance = TRUE}, the \code{volume_meta}
+
+attribute also records each method's label, equation
+
+description, reference, units, scale, and output description.}
+\value{A data.frame with the requested volume outputs added. When
+
+\code{track_provenance = TRUE}, attribute \code{volume_meta}
+
+contains computational and descriptive method metadata.}
+
+\author{Wilson Lara [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>),
+Cristobal Ordonez [aut] (ORCID:
+<https://orcid.org/0000-0001-5354-3760>),
+Aitor Vázquez-Veloso [aut] (ORCID:
+<https://orcid.org/0000-0003-0227-506X>),
+Felipe Bravo [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)}
+
+
+
+\seealso{nfiMetrics, snfi_volume_method_registry,
+
+default_snfi_volume_equations
 Identify the core columns needed by the volume equations.
 Validate and standardize measurement-unit metadata before
 dispatching any equation.
@@ -50,6 +65,9 @@ Validate requested outputs against the method registry.
 Preallocate all requested output columns.
 Compute the legacy volume once so modern methods can fall back to
 it when needed.
+The legacy helper evaluates old equations with h in dm.  Current
+basifoR tree metrics expose h in m, so make that metadata explicit
+before entering the compatibility path.
 Decide whether legacy estimates can be computed from the input.
 need_legacy <- keep.legacy || any(parametro \%in\% c("V", "VCC"))
 Load and normalize the coefficient table used by registry-based
@@ -72,11 +90,54 @@ names = variable names, values = unit strings.
 Add units for the computed outputs that are returned.
 Computed outputs override any original units with the same name.
 Keep units only for columns present in the final output.}
+\examples{
+x <- structure(
+    data.frame(
+        nfi.nr = 4,
+        pr = 28,
+        especie = 21,
+        d = c(180, 260),
+        h = c(9.5, 14.2),
+        n = c(31.83, 14.15)
+    ),
+    class = c("nfiMetrics", "data.frame"),
+    units = c(d = "mm", h = "m", n = "ha-1"),
+    nfi.nr = 4
+)
 
+demo_registry <- snfi_volume_method_registry(list(
+    VCC = list(
+        output = "vcc_demo",
+        fun = function(dbh_mm, h_m, pars) {
+            pars$k[1] * dbh_mm^2 * h_m
+        },
+        raw_unit = "m3 tree-1",
+        unit = "m3 tree-1",
+        scale_to_m3 = 1,
+        build_args = function(ctx, pars, resolved) {
+            list(dbh_mm = ctx$d_mm, h_m = ctx$h_m, pars = pars)
+        },
+        fallback = function(ctx, pars, resolved) NA_real_,
+        pars = data.frame(
+            nfi.nr = 4,
+            pr = 28,
+            especie = 21,
+            k = 1e-7
+        )
+    )
+))
 
-\seealso{nfiMetrics, snfi_volume_method_registry}
-\examples{if (FALSE) {
-  x <- nfiMetrics('toledo')
-  y <- metrics2Vol(x, parametro = c('VCC', 'VSC'))
-  head(y[c('nfi.nr', 'pr', 'especie', 'vcc', 'vsc')])
-}}
+y <- metrics2Vol(
+    x,
+    parametro = "VCC",
+    method_registry = demo_registry,
+    keep.var = FALSE
+)
+
+y[, c("nfi.nr", "pr", "especie", "vcc_demo")]
+
+## Real SNFI workflows may require local Access/mdbtools support or
+## previously cached data, so they are intentionally not run here.
+## z <- nfiMetrics(28, nfi.nr = 4, dir = tools::R_user_dir("basifoR", "cache"))
+## metrics2Vol(z, parametro = c("VCC", "VSC"))
+}

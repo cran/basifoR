@@ -6,7 +6,7 @@ dbhMetric <- structure(function
 ##details<<
 ##details<< The function first coerces non-numeric inputs with \code{as.numeric(as.character())}, replaces zeros with \code{NA}, and, when several values are supplied, reduces them to their mean after removing missing values. If every supplied value is missing, the function returns \code{NA_real_}.
 ##details<<
-##details<< Unit handling depends on \code{met}. For \code{"d"}, the function returns the mean diameter in \code{mm}. For \code{"ba"}, it converts diameter from \code{mm} to \code{cm} and returns basal area in \code{m^2} per tree. For \code{"n"}, it also converts diameter to \code{cm} and then uses \code{design} through \code{\link{trees_per_ha}} to obtain the trees-per-hectare expansion factor. For \code{"h"}, it treats the input as height in \code{m} and returns height in \code{dm}.
+##details<< Unit handling depends on \code{met}. For \code{"d"}, the function returns the mean diameter in \code{mm}. For \code{"ba"}, it converts diameter from \code{mm} to \code{cm} and returns basal area in \code{m^2} per tree. For \code{"n"}, it also converts diameter to \code{cm} and then uses \code{design} through \code{\link{trees_per_ha}} to obtain the trees-per-hectare expansion factor. For \code{"h"}, it treats and returns height in \code{m}.
 ##details<<
 ##details<< The sampling design affects only \code{met = "n"}. For \code{"d"}, \code{"ba"}, and \code{"h"}, the returned value does not depend on \code{design}.
 (dbh, ##<< \code{numeric}. Diameter at breast height in \code{mm}, or tree height in \code{m} when \code{met = "h"}. Non-numeric inputs are coerced, zeros are treated as missing, and vectors are averaged after that replacement.
@@ -41,9 +41,9 @@ dbhMetric <- structure(function
         return(trees_per_ha(design = design, dbh_cm = dbh))
 
     if (met %in% "h")
-        return(conv_unit(dbh, from = "m", to = "dm"))
+        return(dbh)
 
-    ##value<< A single \code{numeric} value. Returns mean diameter in \code{mm} for \code{met = "d"}, basal area in \code{m^2} per tree for \code{met = "ba"}, trees per hectare for \code{met = "n"}, and height in \code{dm} for \code{met = "h"}. Returns \code{NA_real_} when all supplied values are missing or become missing after zero replacement.
+    ##value<< A single \code{numeric} value. Returns mean diameter in \code{mm} for \code{met = "d"}, basal area in \code{m^2} per tree for \code{met = "ba"}, trees per hectare for \code{met = "n"}, and height in \code{m} for \code{met = "h"}. Returns \code{NA_real_} when all supplied values are missing or become missing after zero replacement.
 
 }, ex = function() {
     dbhMetric(300, "d")

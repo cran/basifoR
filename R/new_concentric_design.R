@@ -8,19 +8,19 @@ new_concentric_design <- structure(function#Construct a concentric subplot desig
 ### \code{"concentric_design"} inheriting from
 ### \code{"inventory_design"}.
 (radii_m,       ##<< \code{numeric}. Subplot radii in metres, one value per
-                ##<< tally tier.
+                ## tally tier.
  min_dbh_cm,    ##<< \code{numeric}. Minimum diameter at breast height in
-                ##<< \code{cm} required for a tree to be tallied in each
-                ##<< subplot. Must have the same length as
-                ##<< \code{radii_m}. The function sorts these thresholds in
-                ##<< ascending order and reorders the paired radii
-                ##<< accordingly.
+                ## \code{cm} required for a tree to be tallied in each
+                ## subplot. Must have the same length as
+                ## \code{radii_m}. The function sorts these thresholds in
+                ## ascending order and reorders the paired radii
+                ## accordingly.
  name = "custom",##<< \code{character(1)}. Human-readable design name
-                ##<< stored in the returned object.
+                ## stored in the returned object.
  metadata = NULL ##<< Optional \code{list}. Additional design metadata
-                ##<< merged with default entries for
-                ##<< \code{shape = "circular"} and the ordered
-                ##<< \code{radii_m}.
+                ## merged with default entries for
+                ## \code{shape = "circular"} and the ordered
+                ## \code{radii_m}.
 ) {
     ##details<<
     ##details<< The constructor validates that \code{radii_m} and

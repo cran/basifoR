@@ -21,9 +21,8 @@ dendroMetrics <- structure(function#Summarize dendrometrics
                           ## diameter at breast height \code{d}
                           ## (\code{'cm'}), quadratic mean diameter
                           ## \code{dg} (\code{'cm'}), mean tree
-                          ## height \code{h} (\code{'m'}), number of
-                          ## trees per hectare \code{n}
-                          ## (\code{'dimensionless'}), and over-bark
+                          ## height \code{h} (\code{'m'}), total stand
+                          ## density \code{n_tot} (\code{'ha-1'}), and over-bark
                           ## volume \code{v} (\code{'m3 ha-1'}).
                           ##
                           ## When \code{summ.vr = NULL}, the function
@@ -35,9 +34,10 @@ dendroMetrics <- structure(function#Summarize dendrometrics
                           ## the function converts supported
                           ## variables to stand units, splits the data
                           ## by the requested grouping variable, and
-                          ## computes summaries by group. Extensive
-                          ## variables are multiplied by \code{n}
-                          ## before summation. Variables \code{d},
+                          ## computes summaries by group. The tree-level
+                          ## expansion factor \code{n} is used internally for
+                          ## weighting and summation; its group total is returned
+                          ## as \code{n_tot}. Variables \code{d},
                           ## \code{h}, and \code{Hd}, when present,
                           ## are returned as averages weighted by
                           ## \code{n}.
@@ -81,13 +81,22 @@ nfi, ##<< \code{character}, \code{data.frame}, or \code{list}. A
                           ## summarization. When \code{NULL}, metric
                           ## computation follows \code{summ.vr}.
     cut.dt = 'd == d', ##<< \code{character}. Logical condition used
-                       ##to subset the output. Default \code{'d == d'}
-                       ##avoids subsetting.
+                       ##to subset the output. For grouped summaries, use
+                       ##\code{n_tot} to filter total stand density. Default
+                       ##\code{'d == d'} avoids subsetting.
     report = FALSE, ##<< \code{logical}. Print a report of the output
                     ##in the current working directory.
    mc.cores = getOption("mc.cores", 1L), ##<< \code{integer}. Number
                                          ## of cores used when several
                                          ## inputs are processed.
+    domheight_method = "Hd_strict", ##<< Dominant-height method used when
+                                         ## \code{Hd} is recomputed during
+                                         ## summary preparation. The default
+                                         ## preserves the previous strict
+                                         ## dendrometric behavior.
+    domheight_registry = dominant_height_method_registry(), ##<< Named
+                                         ## dominant-height registry created
+                                         ## with \code{dominant_height_method_registry()}.
     ... ##<< Additional arguments passed to \code{\link{readNFI}},
         ##\code{\link{nfiMetrics}}, or \code{\link{metrics2Vol}},
         ##including \code{nfi.nr} when required.
@@ -116,7 +125,10 @@ nfi, ##<< \code{character}, \code{data.frame}, or \code{list}. A
     }
 
 
-dendro_one <- function(nfi, summ.vr, metric_levels, cut.dt, report, ...) {
+dendro_one <- function(nfi, summ.vr, metric_levels, cut.dt, report,
+                        domheight_method = "Hd_strict",
+                        domheight_registry = dominant_height_method_registry(),
+                        ...) {
     nfi. <- nfi
     if (is.null(nfi.))
         return(nfi)
@@ -127,7 +139,7 @@ dendro_one <- function(nfi, summ.vr, metric_levels, cut.dt, report, ...) {
 
         nm <- tolower(names(x))
         has_metric <- any(nm %in% c(
-            "d", "h", "hd", "ba", "n",
+            "d", "h", "hd", "dd", "ba", "n",
             "v", "vcc", "vsc", "iavc", "vle"
         ))
 
@@ -142,12 +154,19 @@ dendro_one <- function(nfi, summ.vr, metric_levels, cut.dt, report, ...) {
         if (is_precomputed_metrics(nfi.)) {
             nfi <- nfi.
         } else {
-            nfi <- metrics2Vol(nfi, ...)
+            nfi <- metrics2Vol(
+                nfi,
+                domheight_method = domheight_method,
+                domheight_registry = domheight_registry,
+                ...
+            )
         }
     }
 
     design_meta <- attr(nfi, "design_meta")
     volume_meta <- attr(nfi, "volume_meta")
+    dominant_height_meta0 <- attr(nfi, "dominant_height_meta")
+    dominant_diameter_meta0 <- attr(nfi, "dominant_diameter_meta")
     nfi_nr_attr <- attr(nfi, "nfi.nr")
 
     names(nfi) <- tolower(names(nfi))
@@ -172,6 +191,10 @@ dendro_one <- function(nfi, summ.vr, metric_levels, cut.dt, report, ...) {
             attr(nfi, "design_meta") <- design_meta
         if (!is.null(volume_meta))
             attr(nfi, "volume_meta") <- volume_meta
+        if (!is.null(dominant_height_meta0))
+            attr(nfi, "dominant_height_meta") <- dominant_height_meta0
+        if (!is.null(dominant_diameter_meta0))
+            attr(nfi, "dominant_diameter_meta") <- dominant_diameter_meta0
         if (!is.null(nfi_nr_attr))
             attr(nfi, "nfi.nr") <- nfi_nr_attr
 
@@ -197,7 +220,7 @@ dendro_one <- function(nfi, summ.vr, metric_levels, cut.dt, report, ...) {
     if (!length(metric_cols))
         stop("None of 'metric_levels' were found in 'nfi'.", call. = FALSE)
 
-    weighted_mean_vars <- intersect(c("d", "h", "hd"), names(nfi))
+    weighted_mean_vars <- intersect(c("d", "h", "hd", "dd"), names(nfi))
     sum_vars <- intersect(c("ba", "n", "v", "vcc", "vsc", "iavc", "vle"),
                           names(nfi))
 
@@ -209,17 +232,33 @@ dendro_one <- function(nfi, summ.vr, metric_levels, cut.dt, report, ...) {
         )
     }
 
-    if ("hd" %in% names(nfi) && all(c("d", "h", "n") %in% names(nfi))) {
-        domheight_fun <- ns_fun("domheight_strict")
-        if (is.null(domheight_fun))
-            domheight_fun <- ns_fun("domheight")
+    recompute_hd <- "hd" %in% names(nfi) &&
+        all(c("d", "h", "n") %in% names(nfi))
+    recompute_dd <- "dd" %in% names(nfi) &&
+        all(c("d", "n") %in% names(nfi))
 
-        if (!is.null(domheight_fun)) {
+    dominant_height_meta <- NULL
+    dominant_diameter_meta <- NULL
+
+    if (recompute_hd || recompute_dd) {
+        method_info <- tryCatch(
+            resolve_dominant_height_method(
+                method = domheight_method,
+                registry = domheight_registry
+            ),
+            error = function(e) e
+        )
+
+        if (inherits(method_info, "error"))
+            stop(conditionMessage(method_info), call. = FALSE)
+
+        if (recompute_hd) {
+            domheight_fun <- method_info$fun
             ok_hd <- !is.na(nfi$d) & !is.na(nfi$h) & !is.na(nfi$n) &
                 is.finite(nfi$d) & is.finite(nfi$h) & is.finite(nfi$n) &
                 nfi$n > 0
-
             hd_new <- rep(NA_real_, nrow(nfi))
+
             if (any(ok_hd)) {
                 grp_hd <- interaction(
                     nfi[ok_hd, metric_cols, drop = FALSE],
@@ -229,18 +268,55 @@ dendro_one <- function(nfi, summ.vr, metric_levels, cut.dt, report, ...) {
                 idx_hd <- split(which(ok_hd), grp_hd, drop = TRUE)
 
                 for (idx in idx_hd) {
-                    hd_val <- tryCatch(
+                    hd_new[idx] <- tryCatch(
                         domheight_fun(h = nfi$h[idx], d = nfi$d[idx], n = nfi$n[idx]),
                         error = function(e) NA_real_
                     )
-                    hd_new[idx] <- hd_val
                 }
             }
             nfi$hd <- hd_new
+            dominant_height_meta <- method_info$meta
+        }
+
+        if (recompute_dd) {
+            domdiameter_fun <- method_info$diameter_fun
+            if (!is.function(domdiameter_fun)) {
+                stop(
+                    "Dominant method '", method_info$method,
+                    "' does not define a paired dominant-diameter function.",
+                    call. = FALSE
+                )
+            }
+
+            ok_dd <- is.finite(nfi$d) & is.finite(nfi$n) &
+                nfi$d > 0 & nfi$n > 0
+            dd_new <- rep(NA_real_, nrow(nfi))
+
+            if (any(ok_dd)) {
+                grp_dd <- interaction(
+                    nfi[ok_dd, metric_cols, drop = FALSE],
+                    drop = TRUE,
+                    lex.order = TRUE
+                )
+                idx_dd <- split(which(ok_dd), grp_dd, drop = TRUE)
+
+                for (idx in idx_dd) {
+                    dd_new[idx] <- tryCatch(
+                        domdiameter_fun(d = nfi$d[idx], n = nfi$n[idx]),
+                        error = function(e) NA_real_
+                    )
+                }
+            }
+            nfi$dd <- dd_new
+            dominant_diameter_meta <- method_info$meta
+            dominant_diameter_meta$output <- "Dd"
+            dominant_diameter_meta$unit <- method_info$definition$diameter_unit
+            dominant_diameter_meta$equation <- method_info$definition$diameter_equation
+            dominant_diameter_meta$fun_name <- method_info$definition$diameter_fun_name
         }
     }
 
-    mean_target_units <- c(d = "cm", h = "m", hd = "m")
+    mean_target_units <- c(d = "cm", h = "m", hd = "m", dd = "cm")
     if (length(weighted_mean_vars)) {
         conv_units_fun <- ns_fun("conv_units")
         if (is.null(conv_units_fun))
@@ -289,6 +365,11 @@ dendro_one <- function(nfi, summ.vr, metric_levels, cut.dt, report, ...) {
         if (all(c("ba", "n") %in% names(summ)) &&
             is.finite(summ["n"]) && summ["n"] > 0)
             summ["dg"] <- sqrt((4E4 * summ["ba"] / summ["n"]) / pi)
+
+        ## At tree level, n is the per-record expansion factor. After
+        ## aggregation, expose its group total under the unambiguous name n_tot.
+        if ("n" %in% names(summ))
+            names(summ)[names(summ) == "n"] <- "n_tot"
 
         summ <- summ[order(names(summ))]
         summ <- sapply(summ, function(x) round(x, 3))
@@ -361,9 +442,10 @@ vol_vars <- intersect(c("v", "vcc", "vsc", "iavc", "vle"), names(resm))
         d = "cm",
         h = "m",
         hd = "m",
+        dd = "cm",
         dg = "cm",
         ba = "m2 ha-1",
-        n = "ha-1",
+        n_tot = "ha-1",
         v = "m3 ha-1",
         vcc = "m3 ha-1",
         vsc = "m3 ha-1",
@@ -375,6 +457,18 @@ vol_vars <- intersect(c("v", "vcc", "vsc", "iavc", "vle"), names(resm))
         attr(resm, "design_meta") <- design_meta
     if (!is.null(volume_meta))
         attr(resm, "volume_meta") <- volume_meta
+    if (exists("dominant_height_meta", inherits = FALSE) &&
+        !is.null(dominant_height_meta)) {
+        attr(resm, "dominant_height_meta") <- dominant_height_meta
+    } else if (!is.null(dominant_height_meta0)) {
+        attr(resm, "dominant_height_meta") <- dominant_height_meta0
+    }
+    if (exists("dominant_diameter_meta", inherits = FALSE) &&
+        !is.null(dominant_diameter_meta)) {
+        attr(resm, "dominant_diameter_meta") <- dominant_diameter_meta
+    } else if (!is.null(dominant_diameter_meta0)) {
+        attr(resm, "dominant_diameter_meta") <- dominant_diameter_meta0
+    }
     if (!is.null(nfi_nr_attr))
         attr(resm, "nfi.nr") <- nfi_nr_attr
 
@@ -467,7 +561,9 @@ run_job <- function(job) {
                     summ.vr = summ.vr,
                     metric_levels = metric_levels,
                     cut.dt = cut.dt,
-                    report = FALSE
+                    report = FALSE,
+                    domheight_method = domheight_method,
+                    domheight_registry = domheight_registry
                 ),
                 job$dots
             )
@@ -495,7 +591,9 @@ run_job <- function(job) {
                     summ.vr = summ.vr,
                     metric_levels = metric_levels,
                     cut.dt = cut.dt,
-                    report = report
+                    report = report,
+                    domheight_method = domheight_method,
+                    domheight_registry = domheight_registry
                 ),
                 jobs[[1]]$dots
             )
@@ -591,7 +689,9 @@ run_job <- function(job) {
 
         parallel::clusterExport(
             cl = cl,
-            varlist = c("jobs", "run_job", "dendro_one", "summ.vr", "metric_levels", "cut.dt"),
+            varlist = c("jobs", "run_job", "dendro_one", "summ.vr",
+                        "metric_levels", "cut.dt", "domheight_method",
+                        "domheight_registry"),
             envir = environment()
         )
 
@@ -684,6 +784,10 @@ if (any(errs)) {
     if (!is.null(out_units))
         attr(out, "units") <- out_units[names(out_units) %in% names(out)]
 
+    out_domheight_meta <- collect_attr(res_list, "dominant_height_meta")
+    if (!is.null(out_domheight_meta))
+        attr(out, "dominant_height_meta") <- out_domheight_meta
+
     out_design_meta <- collect_attr(res_list, "design_meta")
     if (!is.null(out_design_meta))
         attr(out, "design_meta") <- out_design_meta
@@ -700,9 +804,9 @@ if (any(errs)) {
         write.csv(out, file = "report.csv", row.names = FALSE)
 
     finalize_output(out, call0)
-### \code{data.frame}. Depending on \code{summ.vr = NULL}, an output from
-### \code{\link{metrics2Vol}}, or a summary of the variables, see
-### Details section.
+### \code{data.frame}. With \code{summ.vr = NULL}, tree-level output keeps
+### the expansion-factor column \code{n}. With grouped summaries, total stand
+### density is returned as \code{n_tot}. See Details.
 }, ex = function(){
 
 ## Minimal precomputed metrics object with units
@@ -711,7 +815,7 @@ toy_metrics <- structure(
         Estadillo = c("plot1", "plot1", "plot2"),
         Especie   = c("sp1", "sp2", "sp1"),
         d         = c(120, 185, 260),          # mm
-        h         = c(71, 94, 132),            # dm
+        h         = c(7.1, 9.4, 13.2),         # m
         ba        = c(0.0113, 0.0269, 0.0531), # m2 tree-1
         n         = c(127.32, 31.83, 14.15),
         stringsAsFactors = FALSE
@@ -719,7 +823,7 @@ toy_metrics <- structure(
     class = c("nfiMetrics", "data.frame"),
     units = c(
         d  = "mm",
-        h  = "dm",
+        h  = "m",
         ba = "m2 tree-1",
         n  = "ha-1"
     ),
@@ -732,7 +836,8 @@ dendromet_toy <- dendroMetrics(toy_metrics, summ.vr = "Estadillo")
 ## Display output structure
 str(dendromet_toy)
 
-## Check returned units
+## The tree-level expansion factor n is summed and returned as n_tot
+names(dendromet_toy)
 attr(dendromet_toy, "units")
 
 ## Return tree-level processed data
@@ -807,8 +912,8 @@ update.dendroMetrics <- function #Update a dendroMetrics result
 }
 
 
-update.list <- function #Guard against raw dendroMetrics inputs
-##title<< Guard raw list inputs in \code{update}
+update.list <- function
+##title<< Guard raw list inputs in update
 ##description<< Catch attempts to call \code{update}
 ## on raw input lists intended for \code{\link{dendroMetrics}} and
 ## return a workflow-specific error message. When the input does not

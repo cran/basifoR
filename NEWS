@@ -1,3 +1,77 @@
+# basifoR 0.7.8
+
+## Major changes
+
+* Added `listNFI_tables()`, which lists available raw tables in Spanish National Forest Inventory sources and supports cached/local table discovery.
+
+* Added `readNFIcoords()`, `addNFIcoords()`, `readNFIsf()`, and `addNFIsf()` to attach plot-level UTM coordinates to Spanish NFI tables and optionally return `sf` point objects while reusing locally cached NFI files.
+
+* Added spatial workflow functions `readNFI_spatial()`, `nfiMetrics_spatial()`, `metrics2Vol_spatial()`, and `inventoryMetrics_spatial()`. These functions preserve the tabular workflow while carrying plot geometries as sidecar attributes and optionally returning `sf` objects.
+
+* Added spatial sidecar helpers `hasNFIgeometry_spatial()`, `getNFIgeometry_spatial()`, `copyNFIgeometry_spatial()`, and `asNFI_spatial_sf()` to inspect, propagate, and reconstruct plot-level geometries.
+
+* Added optional boundary sidecars through `gadm_spatial()`, `filter_gadm_province_spatial()`, `hasNFIboundary_spatial()`, `getNFIboundary_spatial()`, `copyNFIboundary_spatial()`, and `copyNFIspatial_sidecars()` for plotting and spatial quality control without requiring the `geodata` package.
+
+* Added S3 plot methods for `readNFI_spatial`, `nfiMetrics_spatial`, `metrics2Vol_spatial`, and `inventoryMetrics_spatial` objects. The methods can draw mapped metric panels with optional boundary sidecars, quantile-based point-size classes, `ggplot2` rendering when available, and a base-graphics fallback otherwise.
+
+* Added dominant-diameter support through the paired `Dd` and `dd` variables. `nfiMetrics()` and `externalMetrics()` can now return tree-record `Dd` values, while `dendroMetrics()` and `external_dendroMetrics()` can summarize them as stand-level `dd`.
+
+* Extended `dominant_height_method_registry()` so bundled dominant-height methods also carry paired dominant-diameter methods and metadata. Dominant diameter uses the same diameter ordering, threshold, and fallback convention as the selected dominant-height method, but it requires only valid diameters and expansion factors.
+
+## API and unit changes
+
+* `nfiMetrics()` now includes `Dd` in its default `var` set. `Dd` requires `d` and `n`; `Hd` continues to require `h`, `d`, and `n`.
+
+* `externalMetrics()` and `external_dendroMetrics()` now support `Dd` and `dd`, including custom paired functions through `domdiameter_fun`.
+
+* Tree-level height outputs now use metres consistently. `nfiMetrics()` reports `h` and `Hd` in metres, `dbhMetric(..., met = "h")` returns height in metres, and dominant-height method metadata reports `unit = "m"`.
+
+* External workflows now standardize declared raw height units (`"m"`, `"dm"`, or `"cm"`) to metres for `h` and `Hd`.
+
+* Grouped summaries now distinguish tree expansion factors from group totals more explicitly: tree-level outputs keep `n`, while grouped outputs report total density as `n_tot`.
+
+* Stand-level summaries report `d` and `dd` in centimetres, `h` and `hd` in metres, `ba` in `m2 ha-1`, `n_tot` in `ha-1`, and volume variables in `m3 ha-1`.
+
+## External-inventory workflow
+
+* Improved external workflow support for `externalMetrics()`, `externalMetrics2Vol()`, `external_dendroMetrics()`, and `inventoryMetrics(backend = "external")`, including propagation of unit metadata, design metadata, dominant-height metadata, dominant-diameter metadata, and volume metadata.
+
+* `externalMetrics2Vol()` can now derive missing standardized inputs through `externalMetrics()` when `compute_metrics_if_needed = TRUE`, including `Hd` and `Dd` when those are required by downstream methods.
+
+* `external_dendroMetrics()` now supports optional tree-level output units through `tree_d_unit_out` and `tree_h_unit_out` when `summ.vr = NULL`. Grouped outputs use the package's stand-level units.
+
+* `inventoryMetrics()` now uses `"Estadillo"` as the default SNFI grouping level and uses schema levels or detected plot identifiers for external inventories when `summ.vr` is omitted.
+
+* Added support for user-supplied coordinates and boundary polygons in external spatial workflows. External inventories can participate in the spatial sidecar workflow when coordinates are supplied through an `sf` input, `coords`, or `schema$defaults$spatial`.
+
+* External spatial workflows now use user-provided boundary objects through `boundary.object`; they no longer infer Spanish GADM boundaries for external inventories.
+
+## Spatial improvements
+
+* Improved Spanish NFI coordinate handling with stage-specific coordinate notes, invalid-coordinate filtering, mixed-Huso handling, per-plot Huso inference, and coordinate diagnostics stored in the spatial registry.
+
+* `inventoryMetrics_spatial()` can summarize grouped geometries as centroids when possible and keeps compatible grouping keys between metric outputs and geometry sidecars.
+
+* Spatial plot methods now document that quantile classes are computed from finite, non-missing values in the object supplied to `plot()`. Quantile classes are unweighted and are based on P5, P25, P50, P75, and P95 thresholds for each selected variable.
+
+* Improved spatial plot dispatch by keeping basifoR spatial classes before `sf` classes so `plot()` reaches the package-specific S3 methods.
+
+## Volume and metadata improvements
+
+* Hardened the legacy volume compatibility path. `metrics2Vol()` now makes current tree-metric units explicit before calling `metrics2Vol_legacy()`, and the legacy helper assumes `d = "mm"` and `h = "m"` when older inputs arrive without unit metadata before converting height to the legacy equation unit.
+
+* `metrics2Vol()` continues to use the modern registry path for normal volume outputs and reserves the legacy path for explicit legacy requests such as `parametro = "V"` or `keep.legacy = TRUE`.
+
+* `metrics2Vol()` and `externalMetrics2Vol()` now preserve dominant-height and dominant-diameter metadata when volume outputs are added.
+
+## Documentation fixes
+
+* Expanded inline documentation for exported functions, S3 methods, registries, spatial accessors, and external workflow arguments.
+
+* Clarified dominant height and dominant diameter documentation, including the difference between `Hd`, `Hd_strict`, and `Hd_mean_fallback`, and the fact that `Dd` may be available when missing heights leave `Hd` undefined.
+
+* Clarified spatial plotting documentation for quantile classes, boundary sidecars, and base-graphics versus `ggplot2` rendering.
+
 # basifoR 0.7.7
 
 ## Major changes
