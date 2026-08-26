@@ -166,11 +166,12 @@ out
 attr(out, 'backend')
 attr(out, 'units')
 
-## Downloadable Toledo workflow. This is useful for users, but it can
-## require internet access or local Access/mdbtools support, so CRAN
-## should not depend on it during ordinary example checks.
-\donttest{
-cache <- tools::R_user_dir('basifoR', 'cache')
+## Downloadable Toledo workflow. It requires internet access and an
+## Access backend (mdbtools on Unix-like systems, ODBC on Windows),
+## so it is not run during package checks.
+\dontrun{
+cache <- file.path(tempdir(), 'basifoR-cache')
+dir.create(cache, showWarnings = FALSE)
 toledo <- inventoryMetrics(
   'toledo',
   nfi.nr = 4,

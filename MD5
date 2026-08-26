@@ -1,6 +1,6 @@
-3fce3d03feed82e044bd2a2626de1d59 *DESCRIPTION
+c92c02c9608e4cf044d2c448e0fa78e1 *DESCRIPTION
 db79fcc80d0f1b543594b8872c2d6d68 *NAMESPACE
-da0a1e779baa7c314ce4abaa581254a4 *NEWS
+a0665edcd69cff29d76bd88d52af718f *NEWS
 dc3f0fef4cba15c676d4276a7d03f870 *R/dbhMetric.R
 6c5c7e094780e91e5599c63e45ceb0b7 *R/default_external_volume_methods.R
 8a7e7e00c8068868b9c918b33eec9812 *R/default_snfi_volume_equations.R
@@ -63,7 +63,7 @@ ae311d4ead78409b110d9281593dd276 *man/getNFIboundary_spatial.Rd
 4dfb307e184187c09fe235bf47969d8f *man/getNFIgeometry_spatial.Rd
 e65a3d3bb07a4848b3a7f7dca9e7c472 *man/hasNFIboundary_spatial.Rd
 cca7eac674484d0bea96a3a120e4fc2f *man/hasNFIgeometry_spatial.Rd
-6dcc95eaaf428181e2875eb03df3bdae *man/inventoryMetrics.Rd
+4aa60bfa17d8c097afaca25cdbf8ca39 *man/inventoryMetrics.Rd
 c86995784faf6f8da229dba13fe9f38f *man/inventoryMetrics_spatial.Rd
 6b807e5da7341a669acfc5c24b972759 *man/listNFI_tables.Rd
 82e6a1f167ce394aaff1f387f9e11306 *man/metrics2Vol.Rd

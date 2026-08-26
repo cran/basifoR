@@ -1,3 +1,12 @@
+# basifoR 0.7.9
+
+## Bug fixes
+
+* The downloadable Toledo example in `inventoryMetrics()` moved from `\donttest{}`
+  to `\dontrun{}`. It needs internet access and an Access backend (mdbtools or
+  ODBC), so it could not run during CRAN checks, and it now uses a session
+  temporary directory rather than a persistent user cache.
+
 # basifoR 0.7.8
 
 ## Major changes
