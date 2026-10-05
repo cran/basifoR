@@ -17,6 +17,14 @@ metrics2Vol <- structure(function(
     ### Keep auxiliary coefficient columns when available.
     keep.legacy = FALSE,
     ### Also return the legacy volume estimate for backward compatibility.
+    legacy_fallback = TRUE,
+    ### \code{logical}. When the official equation cannot be used for a tree
+    ### (no coefficients for its species, parameter, province or cycle, or the
+    ### equation cannot be evaluated), use the legacy equation for the same
+    ### province and species if it has coefficients, labelled
+    ### \code{"fallback_legacy"} in the provenance columns. Set to
+    ### \code{FALSE} to use official equations only and return \code{NA}
+    ### instead. Coefficients of another species are never used.
     method_registry = snfi_volume_method_registry(),
     ### Registry that maps each requested output to descriptive metadata,
     ### its equation function, output column name, units, and fallback rule.
@@ -192,9 +200,9 @@ metrics2Vol <- structure(function(
         if (!is.null(nfi.nr))
             attr(leg, "nfi.nr") <- nfi.nr
 
-        ## The legacy helper evaluates old equations with h in dm.  Current
-        ## basifoR tree metrics expose h in m, so make that metadata explicit
-        ## before entering the compatibility path.
+        ## The legacy helper evaluates the parEqVcc equations with d in mm and
+        ## h in m. Make the unit metadata explicit before entering the
+        ## compatibility path.
         leg_units <- attr(leg, "units")
         if (is.null(leg_units))
             leg_units <- c(d = "mm", h = "m")
@@ -235,17 +243,34 @@ metrics2Vol <- structure(function(
     can_compute_legacy <- all(c("pr", "d", "h") %in% tolower(names(nfi_orig))) &&
         any(grepl("spec|espec", names(nfi_orig), ignore.case = TRUE))
 
-    ## need_legacy <- keep.legacy || any(parametro %in% c("V", "VCC"))
-need_legacy <- keep.legacy || "V" %in% parametro
+    legacy_fallback <- isTRUE(legacy_fallback)
+    legacy_requested <- keep.legacy || "V" %in% parametro
+    legacy_for_fallback <- legacy_fallback &&
+        any(setdiff(parametro, "V") %in% names(method_registry))
+    need_legacy <- legacy_requested || legacy_for_fallback
 
     legacy_v_m3 <- rep(NA_real_, nrow(out))
     if (need_legacy && can_compute_legacy) {
-        legacy_v_m3 <- compute_legacy_v(
-            nfi_input = nfi_orig,
-            cub.met = cub.met,
-            nfi.nr = nfi_nr
-        )
-    } else if (need_legacy) {
+        legacy_v_m3 <- if (legacy_requested) {
+            compute_legacy_v(
+                nfi_input = nfi_orig,
+                cub.met = cub.met,
+                nfi.nr = nfi_nr
+            )
+        } else {
+            ## Computed only to back the fallback. It fails when no tree has
+            ## legacy coefficients; those trees then stay NA, and the
+            ## per-species warning from match_coef_rows() already explains it.
+            tryCatch(
+                suppressWarnings(compute_legacy_v(
+                    nfi_input = nfi_orig,
+                    cub.met = cub.met,
+                    nfi.nr = nfi_nr
+                )),
+                error = function(e) rep(NA_real_, nrow(out))
+            )
+        }
+    } else if (legacy_requested) {
         warn_msg <- c(
             warn_msg,
             "Legacy method not available: missing species, pr, d and/or h."
@@ -362,20 +387,43 @@ need_legacy <- keep.legacy || "V" %in% parametro
 
             param_x <- if (!is.null(coef_col_param)) coef_param_chr[ii] else NULL
 
-            if (!is.na(sp1) && !is.null(coef_col_specn)) {
-                jj <- coef_sp_num[ii] == sp1
-                y <- x[jj, , drop = FALSE]
-                if (nrow(y)) {
-                    x <- y
-                    if (!is.null(param_x))
-                        param_x <- param_x[jj]
-                }
+            ## Never borrow coefficients from another species or another
+            ## parameter: an unmatched species or parameter returns an empty
+            ## table tagged with the reason, and the caller returns NA.
+            no_match <- function(reason) {
+                warning(
+                    "No ", toupper(param %||% "volume"), " coefficients for ",
+                    if (is.na(sp1)) "a tree with missing species code" else
+                        paste0("species ", sp1),
+                    " in province ", pr1, " (IFN", num1(nfi_nr), "); ",
+                    if (legacy_fallback)
+                        "using the legacy equation for the same species where it has coefficients, otherwise NA."
+                    else
+                        "returning NA (legacy_fallback = FALSE).",
+                    call. = FALSE
+                )
+                y <- x[0L, , drop = FALSE]
+                attr(y, "no_match") <- reason
+                assign(key, y, envir = pars_cache)
+                y
+            }
+
+            if (!is.null(coef_col_specn)) {
+                if (is.na(sp1))
+                    return(no_match("species"))
+                jj <- !is.na(coef_sp_num[ii]) & coef_sp_num[ii] == sp1
+                if (!any(jj))
+                    return(no_match("species"))
+                x <- x[jj, , drop = FALSE]
+                if (!is.null(param_x))
+                    param_x <- param_x[jj]
             }
 
             if (!is.null(param) && !is.null(coef_col_param)) {
-                y <- x[param_x == toupper(param), , drop = FALSE]
-                if (nrow(y))
-                    x <- y
+                kk <- !is.na(param_x) & param_x == toupper(param)
+                if (!any(kk))
+                    return(no_match("parameter"))
+                x <- x[kk, , drop = FALSE]
             }
 
             if (nrow(x) > 1L && !is.null(coef_col_fc) &&
@@ -450,8 +498,13 @@ need_legacy <- keep.legacy || "V" %in% parametro
                 cub.met = cub.met
             )
 
-            if (!nrow(p))
+            if (!nrow(p)) {
+                ## Keep the tagged empty table so eval_method() returns NA
+                ## instead of the legacy fallback.
+                if (!is.null(attr(p, "no_match")))
+                    return(p)
                 return(NULL)
+            }
 
             p <- p[1L, , drop = FALSE]
             if (!is.null(coef_col_model) && !"Modelo" %in% names(p))
@@ -477,6 +530,14 @@ need_legacy <- keep.legacy || "V" %in% parametro
         eval_method <- function(param, ctx, resolved) {
             def <- method_registry[[param]]
 
+            ## All fallbacks go through this switch, so that
+            ## legacy_fallback = FALSE yields official values or NA only.
+            fallback_value <- function(pars) {
+                if (!legacy_fallback)
+                    return(NA_real_)
+                def$fallback(ctx, pars, resolved)
+            }
+
             mk <- function(value = NA_real_,
                            source = NA_character_,
                            status = NA_character_,
@@ -495,7 +556,7 @@ need_legacy <- keep.legacy || "V" %in% parametro
 
             fun <- get_method_fun(def)
             if (is.null(fun)) {
-                fb <- def$fallback(ctx, NULL, resolved)
+                fb <- fallback_value(NULL)
                 return(mk(
                     value = fb,
                     source = if (!is.na(fb)) "fallback_legacy" else "missing",
@@ -505,11 +566,23 @@ need_legacy <- keep.legacy || "V" %in% parametro
 
             pars <- get_method_pars(param, ctx, resolved)
             if (is.null(pars)) {
-                fb <- def$fallback(ctx, NULL, resolved)
+                fb <- fallback_value(NULL)
                 return(mk(
                     value = fb,
                     source = if (!is.na(fb)) "fallback_legacy" else "missing",
                     status = "no_parameters"
+                ))
+            }
+
+            if (!nrow(pars)) {
+                ## No official row for this species or parameter. The legacy
+                ## value, if any, comes from the same province and species.
+                reason <- attr(pars, "no_match") %||% "parameters"
+                fb <- fallback_value(NULL)
+                return(mk(
+                    value = fb,
+                    source = if (!is.na(fb)) "fallback_legacy" else "missing",
+                    status = paste0("no_", reason, "_coefficients")
                 ))
             }
 
@@ -525,7 +598,7 @@ need_legacy <- keep.legacy || "V" %in% parametro
 
             args <- def$build_args(ctx, pars, resolved)
             if (is.null(args)) {
-                fb <- def$fallback(ctx, pars, resolved)
+                fb <- fallback_value(pars)
                 return(mk(
                     value = fb,
                     source = if (!is.na(fb)) "fallback_legacy" else "missing",
@@ -545,7 +618,7 @@ need_legacy <- keep.legacy || "V" %in% parametro
 
             val_raw <- suppressWarnings(as.numeric(val_raw)[1L])
             if (!length(val_raw) || is.na(val_raw)) {
-                fb <- def$fallback(ctx, pars, resolved)
+                fb <- fallback_value(pars)
                 return(mk(
                     value = fb,
                     source = if (!is.na(fb)) "fallback_legacy" else "missing",

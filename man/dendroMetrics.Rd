@@ -112,7 +112,12 @@ Parallel processing is controlled by
 process several inputs in parallel.}
 \value{\code{data.frame}. With \code{summ.vr = NULL}, tree-level output keeps
 the expansion-factor column \code{n}. With grouped summaries, total stand
-density is returned as \code{n_tot}. See Details.}
+density is returned as \code{n_tot}. With \code{track_provenance = TRUE}
+(passed through \code{\dots}), for each summarised volume variable
+(for example \code{vcc}), a column \code{<variable>_na_share} gives the
+share (0 to 1) of the group's expansion factor (trees per hectare) whose
+tree volume is missing. The volume total sums only the trees with a value.
+See Details.}
 
 \author{Wilson Lara [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>),
 Cristobal Ordonez [aut] (ORCID:

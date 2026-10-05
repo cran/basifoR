@@ -12,6 +12,7 @@ provenance information.}
     parametro = c("VCC"), 
     keep.var = TRUE, 
     keep.legacy = FALSE, 
+    legacy_fallback = TRUE, 
     method_registry = snfi_volume_method_registry(), 
     track_provenance = FALSE, 
     ...)}
@@ -22,6 +23,13 @@ object with tree-level metrics.}
   \item{parametro}{One or more volume outputs to compute.}
   \item{keep.var}{Keep auxiliary coefficient columns when available.}
   \item{keep.legacy}{Also return the legacy volume estimate for backward compatibility.}
+  \item{legacy_fallback}{\code{logical}. When the official equation cannot be used for a tree
+(no coefficients for its species, parameter, province or cycle, or the
+equation cannot be evaluated), use the legacy equation for the same
+province and species if it has coefficients, labelled
+\code{"fallback_legacy"} in the provenance columns. Set to
+\code{FALSE} to use official equations only and return \code{NA}
+instead. Coefficients of another species are never used.}
   \item{method_registry}{Registry that maps each requested output to descriptive metadata,
 its equation function, output column name, units, and fallback rule.}
   \item{track_provenance}{Add per-row provenance columns and audit metadata, including the
@@ -65,11 +73,10 @@ Validate requested outputs against the method registry.
 Preallocate all requested output columns.
 Compute the legacy volume once so modern methods can fall back to
 it when needed.
-The legacy helper evaluates old equations with h in dm.  Current
-basifoR tree metrics expose h in m, so make that metadata explicit
-before entering the compatibility path.
+The legacy helper evaluates the parEqVcc equations with d in mm and
+h in m. Make the unit metadata explicit before entering the
+compatibility path.
 Decide whether legacy estimates can be computed from the input.
-need_legacy <- keep.legacy || any(parametro \%in\% c("V", "VCC"))
 Load and normalize the coefficient table used by registry-based
 methods.
 Convert relevant inputs and coefficient keys to numeric values.

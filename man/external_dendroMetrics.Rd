@@ -29,7 +29,7 @@ The function can work from already standardized inputs or from raw external tabl
     volume_colmap = list(d = c("d"), 
         h = c("h"), dnm = c("dnm", 
             "d_nm", "D.n.m."), 
-        v = c("v"), species = c("species", 
+        species = c("species", 
             "spec", "especie"), 
         region = c("region", 
             "pr"), equation_set = c("equation_set", 

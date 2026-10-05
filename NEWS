@@ -1,3 +1,74 @@
+# basifoR 0.8.0
+
+## Bug fixes
+
+* The legacy over-bark volume (`v`, from the `parEqVcc` equations) was
+  computed with height in dm instead of m. Values were too large by a factor
+  of about 4 to 12 (median about 9) and exceeded the volume of the enclosing
+  cylinder for every tree tested. The equations take diameter in mm and height
+  in m and return dm3, as the official IFN equations do. With the correction
+  they agree with the official `VCC` equations (median ratio 1.00 in a sample
+  of 14 province-species pairs). This changes every legacy `v`, and every `vcc`
+  that fell back to it.
+
+* The legacy equation now chooses its form class (`cub.met = "freq"`) within
+  each province and species, not once for the whole dataset. Before, a species
+  without the dataset's most frequent form class lost its legacy volume
+  whenever it shared a dataset with other species. The tie within a species is
+  broken by frequency in the whole dataset, so species that had the dataset
+  mode keep their previous value, and no previously computed value changes.
+  For a species with several form classes in its province, the form class
+  chosen therefore depends on the composition of the dataset.
+
+* `metrics2Vol()` no longer computes volume from another species'
+  coefficients. When a species had no coefficient row for its province and
+  inventory cycle, the previous release silently used the first row of that
+  province, which belongs to a different species, and reported it as an
+  equation result. The same happened when a species had rows for other
+  parameters but none for the requested one, and when the species code was
+  missing. Volume results may therefore change for affected species.
+
+* External volume path: a volume column in the source is no longer picked up
+  by the implicit alias `v`. Before, when the input to `externalMetrics2Vol()`
+  already carried standardized metrics and kept a column named `V` or `v` (for
+  example the French NFI `V`, IGN's own "bois fort" volume), trees whose
+  volume method could not run, such as trees without height, received that
+  column's value labelled `"fallback"`. In a 10,000-tree slice of the 2024
+  French export this affected 5,685 trees. Pre-existing volume is now read only
+  when the schema or `colmap` maps `v` explicitly. Without that mapping and
+  without a volume method, `v` is `NA`. The `inventoryMetrics()` and
+  `external_dendroMetrics()` route from raw data was not affected, because the
+  column was not carried to the volume step.
+
+* An explicit `v` mapping in `new_external_schema()` now works through
+  `external_dendroMetrics()` and `inventoryMetrics()`: the mapped column is
+  carried to the volume step with the unit declared in the schema. Before, it
+  stopped with "Missing required column".
+
+## New behaviour
+
+* When the official equation cannot be used for a tree, `metrics2Vol()` now
+  falls back to the corrected legacy equation for the same province and
+  species if it has coefficients, and returns `NA` otherwise. A warning names
+  the species, the province and the cycle. With `track_provenance = TRUE`,
+  `*_source` is `"fallback_legacy"` (or `"missing"` when no value is
+  available) and `*_status` names the reason: `"no_species_coefficients"`,
+  `"no_parameter_coefficients"`, `"no_parameters"`, `"no_function"`,
+  `"no_arguments"`, `"returned_na"` or the error message. A fallback is never
+  reported as `"ok"`.
+
+* New argument `legacy_fallback` in `metrics2Vol()` (default `TRUE`). Set it
+  to `FALSE` to use official equations only and get `NA` where they cannot be
+  applied. It can be passed through `dendroMetrics()` and `inventoryMetrics()`.
+
+* With `track_provenance = TRUE`, grouped summaries from `dendroMetrics()` and
+  `inventoryMetrics()` gain one column per summarised volume variable, for
+  example `vcc_na_share`: the share (0 to 1) of the group's expansion factor
+  (trees per hectare) whose tree volume is missing. The volume total sums only
+  the trees with a value, so a non-zero share means the total is incomplete.
+  Like the `*_source` and `*_status` columns, it is not returned by default,
+  so the default summary has the same columns as in 0.7.9.
+
 # basifoR 0.7.9
 
 ## Bug fixes

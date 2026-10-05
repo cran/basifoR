@@ -2,7 +2,7 @@ Package: basifoR
 Type: Package
 Title: Retrieval and Processing of the Spanish National Forest
         Inventory
-Version: 0.7.9
+Version: 0.8.0
 Authors@R: 
     c(person(given = "Wilson",
              family = "Lara",
@@ -50,6 +50,6 @@ Author: Wilson Lara [aut, cre] (ORCID: <https://orcid.org/0000-0003-3527-1380>),
   Aitor Vázquez-Veloso [aut] (ORCID:
     <https://orcid.org/0000-0003-0227-506X>),
   Felipe Bravo [aut] (ORCID: <https://orcid.org/0000-0001-7348-6695>)
-Packaged: 2026-08-26 07:16:31 UTC; wilar
+Packaged: 2026-10-05 08:26:56 UTC; wilar
 Repository: CRAN
-Date/Publication: 2026-08-26 08:50:02 UTC
+Date/Publication: 2026-10-05 11:30:02 UTC

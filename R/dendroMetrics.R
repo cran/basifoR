@@ -332,7 +332,30 @@ dendro_one <- function(nfi, summ.vr, metric_levels, cut.dt, report,
     msp <- split(nfi, nfi[summ_cols], drop = TRUE)
     msp <- Filter("nrow", msp)
 
+    ## The completeness columns are provenance output, like *_source and
+    ## *_status: returned only with track_provenance = TRUE, or when the
+    ## input already carries provenance columns from metrics2Vol().
+    with_na_share <- isTRUE(list(...)[["track_provenance"]]) ||
+        any(grepl("_(source|status)$", names(nfi)))
+
     fsum <- function(dt) {
+        ## Completeness of each volume total: the share of the group's
+        ## expansion factor (trees ha-1) whose tree volume is missing. The
+        ## volume total sums only the trees with a value.
+        vol_na <- if (with_na_share) {
+            intersect(c("v", "vcc", "vsc", "iavc", "vle"), sum_vars)
+        } else {
+            character(0)
+        }
+        na_share <- vapply(vol_na, function(vv) {
+            ok_n <- !is.na(dt[["n"]])
+            tot <- sum(dt[["n"]][ok_n])
+            if (!is.finite(tot) || tot <= 0)
+                return(NA_real_)
+            sum(dt[["n"]][ok_n & is.na(dt[[vv]])]) / tot
+        }, numeric(1))
+        names(na_share) <- if (length(vol_na)) paste0(vol_na, "_na_share") else character(0)
+
         scale_vars <- unique(c(setdiff(weighted_mean_vars, "n"),
                                setdiff(sum_vars, "n")))
 
@@ -371,6 +394,7 @@ dendro_one <- function(nfi, summ.vr, metric_levels, cut.dt, report,
         if ("n" %in% names(summ))
             names(summ)[names(summ) == "n"] <- "n_tot"
 
+        summ <- c(summ, na_share)
         summ <- summ[order(names(summ))]
         summ <- sapply(summ, function(x) round(x, 3))
         summ <- t(as.matrix(summ))
@@ -452,6 +476,8 @@ vol_vars <- intersect(c("v", "vcc", "vsc", "iavc", "vle"), names(resm))
         iavc = "m3 ha-1",
         vle = "m3 ha-1"
     )
+    na_share_cols <- grep("_na_share$", names(resm), value = TRUE)
+    units_out[na_share_cols] <- "1"
     attr(resm, "units") <- units_out[intersect(names(resm), names(units_out))]
     if (!is.null(design_meta))
         attr(resm, "design_meta") <- design_meta

@@ -91,7 +91,6 @@ external_dendroMetrics <- structure(function
         d = c("d"),
         h = c("h"),
         dnm = c("dnm", "d_nm", "D.n.m."),
-        v = c("v"),
         species = c("species", "spec", "especie"),
         region = c("region", "pr"),
         equation_set = c("equation_set", "eqset", "tariff", "model_set")
@@ -176,6 +175,9 @@ external_dendroMetrics <- structure(function
         metric_d_unit <- sch$metric_d_unit
         metric_h_unit <- sch$metric_h_unit
     }
+
+    ## Unit declared in the schema for an explicitly mapped volume column.
+    v_unit <- if (!is.null(schema)) schema$units$v else NULL
 
     if (!is.null(d_unit))
         metric_d_unit <- d_unit
@@ -469,7 +471,7 @@ external_dendroMetrics <- structure(function
             effective_metric_levels,
             unlist(
                 volume_colmap[
-                    intersect(names(volume_colmap), c("species", "region", "equation_set"))
+                    intersect(names(volume_colmap), c("species", "region", "equation_set", "v"))
                 ],
                 use.names = FALSE
             )
@@ -479,6 +481,18 @@ external_dendroMetrics <- structure(function
         ]
 
         has_param <- length(parametro %||% character(0)) > 0L
+
+        ## Attach the schema unit to an explicitly mapped volume column.
+        if (!is.null(v_unit) && length(volume_colmap$v)) {
+            vcol <- intersect(volume_colmap$v, names(x))
+            if (length(vcol)) {
+                un <- attr(x, "units")
+                if (is.null(un))
+                    un <- character(0)
+                un[vcol] <- v_unit
+                attr(x, "units") <- un
+            }
+        }
 
         if (has_param) {
             dt <- externalMetrics2Vol(

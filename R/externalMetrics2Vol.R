@@ -37,7 +37,6 @@ externalMetrics2Vol <- structure(function
         d = c("d"),
         h = c("h"),
         dnm = c("dnm", "d_nm", "D.n.m."),
-        v = c("v"),
         species = c("species", "spec", "especie"),
         region = c("region", "pr"),
         equation_set = c("equation_set", "eqset", "tariff", "model_set")
@@ -268,7 +267,10 @@ externalMetrics2Vol <- structure(function
         d = unique(c(colmap$d, metric_colmap$d, "d")),
         h = unique(c(colmap$h, metric_colmap$h, "h")),
         dnm = unique(c(colmap$dnm, "dnm")),
-        v = unique(c(colmap$v, "v")),
+        ## A pre-existing volume column is used only when the schema or
+        ## colmap maps v explicitly. There is no implicit "v" alias, so a
+        ## source column such as the IGN "V" is never picked up by name.
+        v = unique(colmap$v),
         n = "n",
         ba = "ba",
         hd = c("Hd", "hd"),
@@ -375,7 +377,7 @@ externalMetrics2Vol <- structure(function
             metric_keep_cols,
             metric_levels,
             unlist(
-                colmap[intersect(names(colmap), c("species", "region", "equation_set"))],
+                colmap[intersect(names(colmap), c("species", "region", "equation_set", "v"))],
                 use.names = FALSE
             )
         ))
@@ -399,7 +401,16 @@ externalMetrics2Vol <- structure(function
         )
     }
 
+    ## Keep the unit metadata of carried columns (for example an explicitly
+    ## mapped volume column) when the input is replaced by computed metrics.
+    units_in <- get_units_map(x)
     x <- maybe_compute_external_metrics(x)
+    if (length(units_in) && is.data.frame(x)) {
+        units_new <- get_units_map(x)
+        carry <- setdiff(intersect(names(units_in), names(x)), names(units_new))
+        if (length(carry))
+            attr(x, "units") <- c(units_new, units_in[carry])
+    }
 
     if (!is.data.frame(x))
         stop("The standardized input must be a data.frame.", call. = FALSE)
@@ -409,7 +420,8 @@ externalMetrics2Vol <- structure(function
     col_d <- resolve_col(x, std_aliases$d, required = "d" %in% required_inputs)
     col_h <- resolve_col(x, std_aliases$h, required = "h" %in% required_inputs)
     col_dnm <- resolve_col(x, std_aliases$dnm, required = "dnm" %in% required_inputs)
-    col_v <- resolve_col(x, std_aliases$v, required = "v" %in% required_inputs)
+    col_v <- resolve_col(x, std_aliases$v,
+                         required = "v" %in% required_inputs && length(std_aliases$v) > 0L)
 
     ctx_names <- setdiff(names(colmap), c("d", "h", "dnm", "v"))
     ctx_cols <- setNames(vector("list", length(ctx_names)), ctx_names)

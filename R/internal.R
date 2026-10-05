@@ -187,10 +187,11 @@ metrics2Vol_legacy <- structure(function#Tree volumes in NFI data
         names(var..)[var..%in%attr_un] <- names(attr_un)
     nfi. <- nfi
 
-    ## Legacy equations are evaluated with height in dm, but current basifoR
-    ## tree metrics report h in m.  If older inputs arrive without unit
-    ## metadata, assume the current package convention and make the conversion
-    ## explicit before applying the legacy formulas.
+    ## The parEqVcc equations take diameter in mm and height in m and return
+    ## volume in dm3, as the official IFN equations do. Evaluating them with
+    ## height in dm overstated volume about tenfold (fixed in 0.8.0). If older
+    ## inputs arrive without unit metadata, assume the current package
+    ## convention (d in mm, h in m) and make the conversion explicit.
     units_in <- attr(nfi, "units")
     if (is.null(units_in))
         units_in <- c(d = "mm", h = "m")
@@ -202,7 +203,7 @@ metrics2Vol_legacy <- structure(function#Tree volumes in NFI data
         units_in["h"] <- "m"
     attr(nfi, "units") <- units_in
 
-    nfi <- conv_units(nfi, var = c('d','h'), un = c('mm','dm'))
+    nfi <- conv_units(nfi, var = c('d','h'), un = c('mm','m'))
     
     mds <- c('1'  = 'v ~ par1 + par2 * (d^2) * h',
              '11' = 'v ~ par1 * (d^par2) * (h^par3)')
@@ -258,15 +259,31 @@ metrics2Vol_legacy <- structure(function#Tree volumes in NFI data
     tex <- fc(mmd,c('mod','par')) 
     if(!keep.var)
         mmd <- mmd[,!names(mmd)%in%tex]
-    ffreq <- function(df){
-        tm <- data.frame(table(df$'fc'))
-        tm <- subset(tm,get('Freq')%in%max(get('Freq')))
-        tm <- as.character(tm$'Var1')[1]
-        return(tm)    
+    ## Form class ('freq'): choose one form class within each province and
+    ## species group, not one for the whole dataset. A dataset-wide choice
+    ## dropped every species that lacks that form class. Within a group each
+    ## tree joins every form-class row of its species, so the group itself
+    ## cannot rank them; the tie is broken by frequency in the whole dataset,
+    ## which keeps the previous choice for groups that have the dataset mode.
+    if(cub.met%in%'freq'){
+        fc_chr <- as.character(mmd$'fc')
+        rank_fc <- names(sort(table(fc_chr), decreasing = TRUE))
+        keys <- fc(nfi, c('pr','spec'))
+        keys <- keys[keys %in% names(mmd)]
+        grp <- if (length(keys)) {
+            interaction(mmd[keys], drop = TRUE, lex.order = TRUE)
+        } else {
+            factor(rep('all', nrow(mmd)))
+        }
+        pick <- tapply(fc_chr, grp, function(f) {
+            f <- unique(f[!is.na(f)])
+            if (!length(f)) NA_character_ else rank_fc[rank_fc %in% f][1L]
+        })
+        chosen <- unname(pick[as.character(grp)])
+        mmd <- mmd[!is.na(fc_chr) & !is.na(chosen) & fc_chr == chosen, , drop = FALSE]
+    } else {
+        mmd <- subset(mmd, fc%in%as.factor(cub.met))
     }
-    if(cub.met%in%'freq')
-        cub.met <- ffreq(mmd)
-    mmd <- subset(mmd, fc%in%as.factor(cub.met))
     if(!keep.var)
         mmd <- mmd[,!names(mmd)%in%'fc']
     ## vun <- getOption('units')[getOption('units')=='v']
@@ -276,11 +293,11 @@ metrics2Vol_legacy <- structure(function#Tree volumes in NFI data
 ## fix
 u <- attr(nfi, "units")
 if (is.null(u))
-    u <- c(d = "mm", h = "dm")
+    u <- c(d = "mm", h = "m")
 if ("d" %in% names(mmd) && !"d" %in% names(u))
     u["d"] <- "mm"
 if ("h" %in% names(mmd) && !"h" %in% names(u))
-    u["h"] <- "dm"
+    u["h"] <- "m"
 u["v"] <- "dm3"
 attr(mmd, "units") <- u
 
